@@ -4,7 +4,10 @@ import 'dotenv/config';
 // --generate sends ONE short, real request, without retries or saving an essay.
 // Neither mode edits .env or changes the user's Google project.
 const key = process.env.GEMINI_API_KEY?.trim();
-const model = (process.env.GEMINI_MODEL?.trim() || 'gemini-2.5-flash').replace(/^models\//, '');
+const model = (process.env.GEMINI_MODEL?.trim() || 'gemini-3.5-flash-lite').replace(
+  /^models\//,
+  '',
+);
 function reportFailure(body) {
   const statuses = [
     'INVALID_ARGUMENT',

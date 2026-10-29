@@ -192,3 +192,87 @@ test('a sequence of invalid replies cannot run past the total request budget', a
   );
   assert.equal(attempts, 2);
 });
+
+test('rejected short draft is sent back with exact bounds and repaired without artificial retry waits', async () => {
+  const shortEssay = Array(100).fill('Қазақша').join(' ');
+  const validEssay = Array(250).fill('Қазақша').join(' ');
+  let attempts = 0;
+  const request = (async (_url, options) => {
+    const payload = JSON.parse(String(options?.body));
+    attempts++;
+    assert.match(payload.systemInstruction.parts[0].text, /213–287/);
+    assert.match(payload.contents[0].parts[0].text, /Тіл байлығы/);
+    if (attempts === 2) {
+      assert.equal(payload.contents[1].role, 'model');
+      assert.equal(JSON.parse(payload.contents[1].parts[0].text).essay, shortEssay);
+      assert.equal(payload.contents[2].role, 'user');
+      assert.match(payload.contents[2].parts[0].text, /Сөз саны 100/);
+      assert.match(payload.contents[2].parts[0].text, /213–287/);
+    }
+    return Response.json({
+      candidates: [
+        {
+          content: {
+            parts: [
+              {
+                text: JSON.stringify({
+                  title: 'Тіл байлығы',
+                  essay: attempts === 1 ? shortEssay : validEssay,
+                  wordCount: 250,
+                }),
+              },
+            ],
+          },
+        },
+      ],
+    });
+  }) as typeof fetch;
+  const result = await generateEssay(
+    { ...defaults, title: 'Тіл байлығы' },
+    {
+      key: 'test-key',
+      request,
+      sleep: async () => assert.fail('Quality repair should start immediately'),
+    },
+  );
+  assert.equal(attempts, 2);
+  assert.equal(result.wordCount, 250);
+  assert.equal(result.essay, validEssay);
+});
+
+test('four rejected drafts reveal the exact quality failure without loosening acceptance checks', async () => {
+  let attempts = 0;
+  const request = (async () => {
+    attempts++;
+    return Response.json({
+      candidates: [
+        {
+          content: {
+            parts: [{ text: JSON.stringify({ title: 'Тіл', essay: 'Қазақша', wordCount: 250 }) }],
+          },
+        },
+      ],
+    });
+  }) as typeof fetch;
+  await assert.rejects(
+    generateEssay(defaults, { key: 'test-key', request, sleep: async () => {} }),
+    /Сөз саны 1; талап 250 ±15%/,
+  );
+  assert.equal(attempts, 4);
+});
+
+test('Kazakh word count boundaries are inclusive and prohibited headings still fail', () => {
+  for (const count of [213, 250, 287])
+    assert.deepEqual(qualityErrors(Array(count).fill('Қазақша').join(' '), 250), []);
+  for (const count of [212, 288])
+    assert.ok(
+      qualityErrors(Array(count).fill('Қазақша').join(' '), 250).some((issue) =>
+        issue.includes('Сөз саны'),
+      ),
+    );
+  assert.ok(
+    qualityErrors('Кіріспе\n' + Array(249).fill('Қазақша').join(' '), 250).some((issue) =>
+      issue.includes('тақырыпша'),
+    ),
+  );
+});
