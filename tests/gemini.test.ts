@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { generateEssay, qualityErrors } from '../server/gemini.ts';
+import { generateEssay, qualityErrors, geminiHttpError } from '../server/gemini.ts';
 import { defaults, countWords } from '../shared/schema.ts';
 
 test('quality guard checks language, count, headings, and banned clichés', () => {
@@ -92,4 +92,49 @@ test('invalid JSON and rejected quality never return a successful essay', async 
     generateEssay(defaults, { key: 'test-key', request, sleep: async () => {} }),
   );
   assert.equal(attempts, 4);
+});
+
+test('invalid key and missing model fail once with an actionable error and no secret disclosure', async () => {
+  for (const status of [400, 403, 404]) {
+    const key = 'private-test-key-never-display';
+    let attempts = 0;
+    const request = (async () => {
+      attempts++;
+      return Response.json(
+        {
+          error: {
+            message: `Sensitive provider message ${key}`,
+            details: [{ reason: status === 400 ? 'API_KEY_INVALID' : 'OTHER' }],
+          },
+        },
+        { status },
+      );
+    }) as typeof fetch;
+    await assert.rejects(
+      generateEssay(defaults, {
+        key,
+        request,
+        sleep: async () => {
+          throw new Error('Permanent errors must not retry');
+        },
+      }),
+      (error: unknown) => {
+        assert.ok(error instanceof Error);
+        assert.match(error.message, new RegExp(`Google ${status}`));
+        assert.ok(!error.message.includes(key));
+        if (status === 404) assert.match(error.message, /GEMINI_MODEL/);
+        return true;
+      },
+    );
+    assert.equal(attempts, 1);
+  }
+});
+
+test('provider precondition errors are distinguished from transient quota errors', () => {
+  const error = geminiHttpError(400, { error: { status: 'FAILED_PRECONDITION' } });
+  assert.match(error.message, /жоба немесе аймақ/);
+  assert.equal(error.retryable, false);
+  const quota = geminiHttpError(429, null);
+  assert.match(quota.message, /квота/);
+  assert.equal(quota.retryable, true);
 });

@@ -5,9 +5,61 @@ export class ServiceError extends Error {
   constructor(
     public status: number,
     message: string,
+    public retryable = false,
   ) {
     super(message);
   }
+}
+// Do not echo Google's raw error body: it can contain request details.
+export function geminiHttpError(httpStatus: number, body: unknown): ServiceError {
+  const error =
+    body && typeof body === 'object'
+      ? (body as { error?: { status?: string; message?: string; details?: { reason?: string }[] } })
+          .error
+      : undefined;
+  const reasons = Array.isArray(error?.details)
+    ? error.details.map((detail) => detail?.reason)
+    : [];
+  if (
+    reasons.includes('API_KEY_INVALID') ||
+    reasons.includes('API_KEY_EXPIRED') ||
+    /api key not valid|api key expired/i.test(error?.message || '')
+  )
+    return new ServiceError(
+      502,
+      `Gemini API кілті жарамсыз немесе мерзімі аяқталған (Google ${httpStatus}). Google AI Studio-да кілтті тексеріп, сервердегі .env файлын жаңартыңыз.`,
+    );
+  if (httpStatus === 404)
+    return new ServiceError(
+      502,
+      'Таңдалған Gemini моделі табылмады (Google 404). Қолжетімді модельді тексеріп, .env ішіндегі GEMINI_MODEL мәнін жаңартыңыз.',
+    );
+  if (httpStatus === 401 || httpStatus === 403)
+    return new ServiceError(
+      502,
+      `Gemini сұрауына рұқсат берілмеді (Google ${httpStatus}). Google Cloud жобасындағы API қолжетімділігін және кілт шектеулерін тексеріңіз.`,
+    );
+  if (
+    httpStatus === 400 &&
+    (/location.*not supported/i.test(error?.message || '') ||
+      error?.status === 'FAILED_PRECONDITION')
+  )
+    return new ServiceError(
+      502,
+      'Google жоба немесе аймақ шарттарына байланысты сұрауды қабылдамады (Google 400). AI Studio-дағы осы жоба үшін Gemini API қолжетімділігін тексеріңіз.',
+    );
+  if ([429, 500, 502, 503, 504].includes(httpStatus))
+    return new ServiceError(
+      httpStatus === 429 ? 429 : 502,
+      httpStatus === 429
+        ? 'Gemini сұрау квотасы аяқталды (Google 429). AI Studio-дағы осы жобаның лимитін тексеріңіз немесе кейінірек қайталаңыз.'
+        : `Gemini уақытша қолжетімсіз (Google ${httpStatus}). Кейінірек қайталаңыз.`,
+      true,
+    );
+  return new ServiceError(
+    502,
+    `Google Gemini сұрауды қабылдамады (Google ${httpStatus}). Модель мен API баптауларын тексеріңіз.`,
+  );
 }
 export const responseSchema = z.object({
   title: z.string().trim().min(1).max(200),
@@ -37,20 +89,25 @@ type Options = {
   sleep?: (ms: number) => Promise<void>;
 };
 export async function generateEssay(params: Parameters, options: Options = {}) {
-  const key = options.key ?? process.env.GEMINI_API_KEY;
+  const key = (options.key ?? process.env.GEMINI_API_KEY)?.trim();
   if (!key)
     throw new ServiceError(
       503,
       'Gemini API әлі қосылмаған. Әзірге өз мәтініңізді жазып, сақтай аласыз.',
     );
   const request = options.request || fetch;
+  const model = (
+    options.model?.trim() ||
+    process.env.GEMINI_MODEL?.trim() ||
+    'gemini-2.5-flash'
+  ).replace(/^models\//, '');
   const sleep = options.sleep || ((ms) => new Promise((resolve) => setTimeout(resolve, ms)));
   let correction = '';
   for (let attempt = 0; attempt < 4; attempt++) {
     if (attempt) await sleep(attempt * 5000);
     try {
       const result = await request(
-        `https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(options.model || process.env.GEMINI_MODEL || 'gemini-2.5-flash')}:generateContent`,
+        `https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(model)}:generateContent`,
         {
           method: 'POST',
           headers: { 'Content-Type': 'application/json', 'x-goog-api-key': key },
@@ -81,15 +138,7 @@ export async function generateEssay(params: Parameters, options: Options = {}) {
         },
       );
       if (!result.ok) {
-        if ([429, 500, 502, 503, 504].includes(result.status))
-          throw new ServiceError(
-            result.status === 429 ? 429 : 502,
-            'Gemini уақытша жауап бермеді немесе сұрау лимиті аяқталды. Кейінірек қайталаңыз.',
-          );
-        throw new ServiceError(
-          502,
-          'Gemini қолжетімсіз. Сервердегі API кілті мен модель баптауын тексеріңіз.',
-        );
+        throw geminiHttpError(result.status, await result.json().catch(() => null));
       }
       const body = await result.json();
       const text = body.candidates?.[0]?.content?.parts
@@ -97,12 +146,12 @@ export async function generateEssay(params: Parameters, options: Options = {}) {
         .map((p: { text?: string }) => p.text || '')
         .join('');
       if (!text)
-        throw new ServiceError(502, 'Gemini бос жауап қайтарды. Тақырыпты өзгертіп көріңіз.');
+        throw new ServiceError(502, 'Gemini бос жауап қайтарды. Тақырыпты өзгертіп көріңіз.', true);
       let parsed;
       try {
         parsed = responseSchema.parse(JSON.parse(text));
       } catch {
-        throw new ServiceError(502, 'Gemini жауабының форматы дұрыс емес.');
+        throw new ServiceError(502, 'Gemini жауабының форматы дұрыс емес.', true);
       }
       const issues = qualityErrors(parsed.essay, params.targetWordCount);
       if (issues.length) {
@@ -110,11 +159,12 @@ export async function generateEssay(params: Parameters, options: Options = {}) {
         throw new ServiceError(
           502,
           'Эссе тіл мен көлем талаптарына сәйкес келмеді. Қайта көріңіз.',
+          true,
         );
       }
       return { ...parsed, wordCount: countWords(parsed.essay) };
     } catch (error) {
-      if (attempt === 3 || (error instanceof ServiceError && error.message.includes('кілт'))) {
+      if (attempt === 3 || (error instanceof ServiceError && !error.retryable)) {
         if (error instanceof ServiceError) throw error;
         throw new ServiceError(502, 'Gemini-мен байланыс уақыты аяқталды. Қайта көріңіз.');
       }
