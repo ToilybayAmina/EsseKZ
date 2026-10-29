@@ -147,3 +147,8 @@ vite.config.ts.timestamp-*
 
 # Turbo Repo
 .turbo
+
+# Local PostgreSQL data and test artifacts
+.local/
+test-results/
+playwright-report/
