@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import {
   ArrowLeft,
@@ -11,6 +11,7 @@ import {
   Save,
 } from 'lucide-react';
 import { countWords, essayParameters, type Essay } from '../../shared/schema';
+import { splitParagraphs } from '../../shared/essay-format';
 import { api } from '../api';
 import { useApp } from '../context';
 import { ErrorBox, Loading, Ornament } from '../components';
@@ -21,12 +22,24 @@ export function Result() {
   const [essay, setEssay] = useState<Essay | null>(null);
   const [title, setTitle] = useState('');
   const [text, setText] = useState('');
+  const editor = useRef<HTMLTextAreaElement>(null);
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
   const [downloading, setDownloading] = useState('');
   const [copied, setCopied] = useState(false);
   const dirty = Boolean(essay && (title !== essay.title || text !== essay.essay_text));
+  useLayoutEffect(() => {
+    function resize() {
+      if (!editor.current) return;
+      editor.current.style.height = 'auto';
+      editor.current.style.height = `${editor.current.scrollHeight}px`;
+    }
+    resize();
+    window.addEventListener('resize', resize);
+    document.fonts.ready.then(resize);
+    return () => window.removeEventListener('resize', resize);
+  }, [text, loading]);
   useEffect(() => {
     let live = true;
     setLoading(true);
@@ -168,6 +181,7 @@ export function Result() {
             Эссе мәтіні
           </label>
           <textarea
+            ref={editor}
             id="result-text"
             className="document-text"
             value={text}
@@ -180,6 +194,7 @@ export function Result() {
               <FileText size={15} />
               {countWords(text)} сөз
             </span>
+            <span>{splitParagraphs(text).length} абзац</span>
             <span>{text.length} таңба</span>
             <span>Мәтінді осы жерде өңдей аласыз</span>
           </div>

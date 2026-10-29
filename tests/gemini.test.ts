@@ -2,6 +2,9 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { generateEssay, qualityErrors, geminiHttpError } from '../server/gemini.ts';
 import { defaults, countWords } from '../shared/schema.ts';
+import { serializeEssay } from '../server/essay-rules.ts';
+import { splitParagraphs } from '../shared/essay-format.ts';
+import { structuredFixture } from './essay-fixture.ts';
 
 test('quality guard checks language, count, headings, and banned clichés', () => {
   assert.ok(qualityErrors('', 150).length >= 3);
@@ -45,7 +48,7 @@ test('provider retries 429/503 four total attempts with 5/10/15 second delays', 
 });
 test('structured provider JSON is validated and word count is computed on server', async () => {
   // Explicit test fixture, never used in the running application.
-  const essay = Array(150).fill('Қазақша').join(' ');
+  const draft = structuredFixture(150);
   let prompt = '';
   const request = (async (_url, options) => {
     prompt = String(options?.body);
@@ -53,7 +56,7 @@ test('structured provider JSON is validated and word count is computed on server
       candidates: [
         {
           content: {
-            parts: [{ text: JSON.stringify({ title: 'Тіл байлығы', essay, wordCount: 999 }) }],
+            parts: [{ text: JSON.stringify(draft) }],
           },
         },
       ],
@@ -64,6 +67,7 @@ test('structured provider JSON is validated and word count is computed on server
     { key: 'test-key', request },
   );
   assert.equal(r.wordCount, 150);
+  assert.equal(splitParagraphs(r.essay).length, 5);
   assert.match(prompt, /Мысалы/);
   assert.match(prompt, /responseMimeType/);
 });
@@ -77,10 +81,7 @@ test('invalid JSON and rejected quality never return a successful essay', async 
           content: {
             parts: [
               {
-                text:
-                  attempts < 3
-                    ? 'invalid JSON'
-                    : JSON.stringify({ title: 'x', essay: 'Кіріспе\nShort', wordCount: 2 }),
+                text: attempts < 3 ? 'invalid JSON' : JSON.stringify(structuredFixture(25)),
               },
             ],
           },
@@ -194,8 +195,8 @@ test('a sequence of invalid replies cannot run past the total request budget', a
 });
 
 test('rejected short draft is sent back with exact bounds and repaired without artificial retry waits', async () => {
-  const shortEssay = Array(100).fill('Қазақша').join(' ');
-  const validEssay = Array(250).fill('Қазақша').join(' ');
+  const shortDraft = structuredFixture(100);
+  const validDraft = structuredFixture(250);
   let attempts = 0;
   const request = (async (_url, options) => {
     const payload = JSON.parse(String(options?.body));
@@ -204,7 +205,10 @@ test('rejected short draft is sent back with exact bounds and repaired without a
     assert.match(payload.contents[0].parts[0].text, /Тіл байлығы/);
     if (attempts === 2) {
       assert.equal(payload.contents[1].role, 'model');
-      assert.equal(JSON.parse(payload.contents[1].parts[0].text).essay, shortEssay);
+      assert.equal(
+        JSON.parse(payload.contents[1].parts[0].text).introduction,
+        shortDraft.introduction,
+      );
       assert.equal(payload.contents[2].role, 'user');
       assert.match(payload.contents[2].parts[0].text, /Сөз саны 100/);
       assert.match(payload.contents[2].parts[0].text, /213–287/);
@@ -215,11 +219,7 @@ test('rejected short draft is sent back with exact bounds and repaired without a
           content: {
             parts: [
               {
-                text: JSON.stringify({
-                  title: 'Тіл байлығы',
-                  essay: attempts === 1 ? shortEssay : validEssay,
-                  wordCount: 250,
-                }),
+                text: JSON.stringify(attempts === 1 ? shortDraft : validDraft),
               },
             ],
           },
@@ -237,7 +237,7 @@ test('rejected short draft is sent back with exact bounds and repaired without a
   );
   assert.equal(attempts, 2);
   assert.equal(result.wordCount, 250);
-  assert.equal(result.essay, validEssay);
+  assert.equal(result.essay, serializeEssay(validDraft));
 });
 
 test('four rejected drafts reveal the exact quality failure without loosening acceptance checks', async () => {
@@ -248,7 +248,7 @@ test('four rejected drafts reveal the exact quality failure without loosening ac
       candidates: [
         {
           content: {
-            parts: [{ text: JSON.stringify({ title: 'Тіл', essay: 'Қазақша', wordCount: 250 }) }],
+            parts: [{ text: JSON.stringify(structuredFixture(25)) }],
           },
         },
       ],
@@ -256,7 +256,7 @@ test('four rejected drafts reveal the exact quality failure without loosening ac
   }) as typeof fetch;
   await assert.rejects(
     generateEssay(defaults, { key: 'test-key', request, sleep: async () => {} }),
-    /Сөз саны 1; талап 250 ±15%/,
+    /Сөз саны 25; талап 250 ±15%/,
   );
   assert.equal(attempts, 4);
 });

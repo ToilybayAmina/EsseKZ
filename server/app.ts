@@ -13,6 +13,7 @@ import type { Database } from './db.ts';
 import { hashPassword, verifyPassword, newToken, tokenHash } from './auth.ts';
 import { generateEssay, ServiceError } from './gemini.ts';
 import { parametersSchema, countWords } from '../shared/schema.ts';
+import { splitParagraphs } from '../shared/essay-format.ts';
 
 const passwordSchema = z.string().min(8).max(128);
 const registerSchema = z.object({
@@ -245,16 +246,14 @@ export function createApp(db: Database) {
     activeGenerations++;
     try {
       const result = await generateEssay(params);
-      res
-        .status(201)
-        .json({
-          essay: await insertEssay(
-            { ...params, title: result.title },
-            result.essay,
-            'gemini',
-            res.locals.user.id,
-          ),
-        });
+      res.status(201).json({
+        essay: await insertEssay(
+          { ...params, title: result.title },
+          result.essay,
+          'gemini',
+          res.locals.user.id,
+        ),
+      });
     } finally {
       activeGenerations--;
     }
@@ -344,16 +343,15 @@ export function createApp(db: Database) {
                   new TextRun({ text: essay.title, bold: true, font: 'Times New Roman', size: 28 }),
                 ],
               }),
-              ...essay.essay_text
-                .split('\n')
-                .map(
-                  (text: string) =>
-                    new Paragraph({
-                      alignment: AlignmentType.JUSTIFIED,
-                      spacing: { after: 140, line: 360 },
-                      children: [new TextRun({ text, font: 'Times New Roman', size: 28 })],
-                    }),
-                ),
+              ...splitParagraphs(essay.essay_text).map(
+                (text: string) =>
+                  new Paragraph({
+                    alignment: AlignmentType.JUSTIFIED,
+                    indent: { firstLine: 709 },
+                    spacing: { after: 140, line: 360 },
+                    children: [new TextRun({ text, font: 'Times New Roman', size: 28 })],
+                  }),
+              ),
             ],
           },
         ],
@@ -372,12 +370,12 @@ export function createApp(db: Database) {
     res.type('application/pdf');
     doc.on('error', () => res.destroy());
     doc.pipe(res);
-    doc
-      .font(font)
-      .fontSize(14)
-      .text(essay.title, { align: 'center' })
-      .moveDown()
-      .text(essay.essay_text, { align: 'justify', lineGap: 7 });
+    doc.font(font).fontSize(14).text(essay.title, { align: 'center' }).moveDown();
+    const paragraphs = splitParagraphs(essay.essay_text);
+    paragraphs.forEach((paragraph, index) => {
+      doc.text(paragraph, { align: 'justify', lineGap: 7, indent: 35.43 });
+      if (index < paragraphs.length - 1) doc.moveDown(0.5);
+    });
     doc.end();
   });
   app.use('/api', (_req, res) => res.status(404).json({ error: 'API мекенжайы табылмады.' }));

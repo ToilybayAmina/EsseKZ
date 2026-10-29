@@ -1822,7 +1822,8 @@ main {
 }
 .document-text {
   min-height: 560px;
-  resize: vertical;
+  resize: none;
+  overflow-y: hidden;
   border: 0;
   padding: 14px 0;
   font-family: Georgia, 'Times New Roman', serif;

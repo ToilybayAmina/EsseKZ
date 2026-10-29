@@ -37,15 +37,35 @@ test('home, responsive navigation, account, manual editor, exports, private hist
   await page
     .getByLabel('Эссе мәтіні', { exact: true })
     .fill(
-      'Ұлттық тіліміз — рухани қазына. Әрбір сөздің астарында халықтың тарихы, үні және болашаққа деген сенімі бар.',
+      [
+        'Ұлттық тіліміз — рухани қазына. Әрбір сөздің астарында халықтың тарихы мен үні бар.',
+        'Біріншіден, тіл ұрпақтарды байланыстырады. Мысалы, отбасындағы әңгіме балаға дәстүрді танытады.',
+        'Екіншіден, тіл білім алуға жол ашады. Нақты мысал ретінде қазақ тіліндегі кітаптарды атауға болады.',
+        'Үшіншіден, күнделікті қолданыс тілдің дамуына ықпал етеді. Өз ойымызды анық жеткізу осыдан басталады.',
+        'Қорыта айтқанда, тілді сақтау ортақ жауапкершілік. Оны күнделікті қолдану арқылы үлес қоса аламыз.',
+      ].join('\n\n'),
     );
   await page.getByRole('button', { name: 'Өзгерістерді сақтау' }).click();
   await expect(page.getByText('Барлық өзгерістер сақталған')).toBeVisible();
+  await expect(page.getByText('5 абзац', { exact: true })).toBeVisible();
+  expect(
+    await page.locator('#result-text').evaluate((el) => el.scrollHeight <= el.clientHeight + 2),
+  ).toBe(true);
+  await page.reload();
+  await expect(page.getByText('5 абзац', { exact: true })).toBeVisible();
+  await expect(page.getByLabel('Эссе мәтіні', { exact: true })).toHaveValue(/\n\nБіріншіден/);
+  await page.screenshot({
+    path: `test-results/paragraphs-${testInfo.project.name}.png`,
+    fullPage: true,
+  });
   for (const name of ['PDF', 'Word', 'TXT']) {
     const download = page.waitForEvent('download');
     await page.getByRole('button', { name, exact: true }).click();
     const file = await download;
     expect(file.suggestedFilename()).toContain('EsseKZ-');
+    await file.saveAs(
+      testInfo.outputPath(`paragraphs.${name === 'Word' ? 'docx' : name.toLowerCase()}`),
+    );
   }
   await page.getByRole('link', { name: 'Жұмыстарым', exact: true }).click();
   await expect(page.locator('.essay-card')).toHaveCount(1);
