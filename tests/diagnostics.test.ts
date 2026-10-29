@@ -30,3 +30,29 @@ test('diagnostic follows pagination and only lists generateContent-compatible mo
   assert.match(stdout, /test-flash/);
   assert.ok(!stdout.includes('embedding-only'));
 });
+
+test('generation probe tests a real POST-shaped request once, without printing text or secrets', async () => {
+  const code = `globalThis.fetch=async(url,options)=>{if(options.method!=='POST'||!url.endsWith(':generateContent'))throw new Error('Wrong probe'); return Response.json({candidates:[{content:{parts:[{text:JSON.stringify({title:'Private title',essay:'Private text',wordCount:2})}]}}]});}; process.argv.push('--generate'); await import('./scripts/check-gemini.mjs');`;
+  const { stdout } = await execute(process.execPath, ['--input-type=module', '-e', code], {
+    env: { ...process.env, GEMINI_API_KEY: 'private-probe-key' },
+  });
+  assert.match(stdout, /GENERATION_HTTP: 200/);
+  assert.match(stdout, /GENERATION_RESULT: valid JSON/);
+  assert.ok(!stdout.includes('Private text'));
+  assert.ok(!stdout.includes('private-probe-key'));
+});
+
+test('generation probe reports a safe transport error instead of mislabeling every failure as a timeout', async () => {
+  const code = `globalThis.fetch=async()=>{throw new TypeError('private-probe-key',{cause:{code:'ECONNRESET'}});}; process.argv.push('--generate'); await import('./scripts/check-gemini.mjs');`;
+  try {
+    await execute(process.execPath, ['--input-type=module', '-e', code], {
+      env: { ...process.env, GEMINI_API_KEY: 'private-probe-key' },
+    });
+    assert.fail('Expected nonzero probe exit');
+  } catch (error) {
+    const result = error as { stdout: string; code: number };
+    assert.equal(result.code, 1);
+    assert.match(result.stdout, /NETWORK_ERROR: ECONNRESET/);
+    assert.ok(!result.stdout.includes('private-probe-key'));
+  }
+});

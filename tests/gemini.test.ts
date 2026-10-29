@@ -138,3 +138,57 @@ test('provider precondition errors are distinguished from transient quota errors
   assert.match(quota.message, /квота/);
   assert.equal(quota.retryable, true);
 });
+
+test('timeouts and network failures fail once and preserve safe diagnostic categories', async () => {
+  for (const [error, expected] of [
+    [new DOMException('sensitive timeout text', 'TimeoutError'), 'GEMINI_TIMEOUT'],
+    [new TypeError('sensitive request URL', { cause: { code: 'ECONNRESET' } }), 'ECONNRESET'],
+    [
+      new TypeError('sensitive request URL', {
+        cause: { code: 'UNABLE_TO_VERIFY_LEAF_SIGNATURE' },
+      }),
+      'UNABLE_TO_VERIFY_LEAF_SIGNATURE',
+    ],
+    [new Error('sensitive internal detail'), 'GEMINI_RESPONSE_ERROR'],
+  ] as const) {
+    let attempts = 0;
+    await assert.rejects(
+      generateEssay(defaults, {
+        key: 'test-key',
+        request: (async () => {
+          attempts++;
+          throw error;
+        }) as typeof fetch,
+        sleep: async () => assert.fail('Transport failure must not silently repeat'),
+      }),
+      (failure: unknown) => {
+        assert.ok(failure instanceof Error);
+        assert.ok(failure.message.includes(expected));
+        assert.ok(!failure.message.includes('sensitive'));
+        return true;
+      },
+    );
+    assert.equal(attempts, 1);
+  }
+});
+
+test('a sequence of invalid replies cannot run past the total request budget', async (t) => {
+  let now = 0;
+  t.mock.method(Date, 'now', () => now);
+  let attempts = 0;
+  await assert.rejects(
+    generateEssay(defaults, {
+      key: 'test-key',
+      request: (async () => {
+        attempts++;
+        now += 45000;
+        return Response.json({ candidates: [] });
+      }) as typeof fetch,
+      sleep: async (ms) => {
+        now += ms;
+      },
+    }),
+    /GEMINI_DEADLINE/,
+  );
+  assert.equal(attempts, 2);
+});

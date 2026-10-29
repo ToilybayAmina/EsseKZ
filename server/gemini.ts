@@ -61,6 +61,37 @@ export function geminiHttpError(httpStatus: number, body: unknown): ServiceError
     `Google Gemini сұрауды қабылдамады (Google ${httpStatus}). Модель мен API баптауларын тексеріңіз.`,
   );
 }
+export function geminiTransportError(error: unknown): ServiceError {
+  const failure = error as { name?: string; cause?: { code?: string }; code?: string } | null;
+  if (failure?.name === 'TimeoutError' || failure?.name === 'AbortError')
+    return new ServiceError(
+      504,
+      'Google жауабын күту уақыты аяқталды (GEMINI_TIMEOUT). Желі мен модельдің қолжетімділігін тексеріңіз.',
+    );
+  const code = failure?.cause?.code || failure?.code;
+  const knownCodes = [
+    'ENOTFOUND',
+    'EAI_AGAIN',
+    'ECONNREFUSED',
+    'ECONNRESET',
+    'ETIMEDOUT',
+    'UND_ERR_CONNECT_TIMEOUT',
+    'UND_ERR_HEADERS_TIMEOUT',
+    'UND_ERR_SOCKET',
+    'CERT_HAS_EXPIRED',
+    'UNABLE_TO_VERIFY_LEAF_SIGNATURE',
+    'SELF_SIGNED_CERT_IN_CHAIN',
+    'DEPTH_ZERO_SELF_SIGNED_CERT',
+  ];
+  if ((code && knownCodes.includes(code)) || failure?.name === 'TypeError')
+    return new ServiceError(
+      502,
+      `Google-ға желілік қосылым орындалмады (${code && knownCodes.includes(code) ? code : 'FETCH_FAILED'}). Интернетті, жүйе уақытын және желі баптауларын тексеріңіз.`,
+    );
+  if (failure?.name === 'SyntaxError')
+    return new ServiceError(502, 'Google жауабының JSON форматы дұрыс емес.', true);
+  return new ServiceError(502, 'Gemini жауабын өңдеу мүмкін болмады (GEMINI_RESPONSE_ERROR).');
+}
 export const responseSchema = z.object({
   title: z.string().trim().min(1).max(200),
   essay: z.string().trim().min(1).max(25000),
@@ -102,16 +133,29 @@ export async function generateEssay(params: Parameters, options: Options = {}) {
     'gemini-2.5-flash'
   ).replace(/^models\//, '');
   const sleep = options.sleep || ((ms) => new Promise((resolve) => setTimeout(resolve, ms)));
+  const deadline = Date.now() + 90000;
   let correction = '';
   for (let attempt = 0; attempt < 4; attempt++) {
+    if (Date.now() + attempt * 5000 >= deadline)
+      throw new ServiceError(
+        504,
+        'Эссе дайындаудың жалпы күту шегі аяқталды (GEMINI_DEADLINE). Кейінірек қайталаңыз.',
+      );
     if (attempt) await sleep(attempt * 5000);
+    const remaining = deadline - Date.now();
+    if (remaining <= 0)
+      throw new ServiceError(
+        504,
+        'Эссе дайындаудың жалпы күту шегі аяқталды (GEMINI_DEADLINE). Кейінірек қайталаңыз.',
+      );
+    let processingResponse = false;
     try {
       const result = await request(
         `https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(model)}:generateContent`,
         {
           method: 'POST',
           headers: { 'Content-Type': 'application/json', 'x-goog-api-key': key },
-          signal: AbortSignal.timeout(55000),
+          signal: AbortSignal.timeout(Math.min(45000, remaining)),
           body: JSON.stringify({
             systemInstruction: {
               parts: [
@@ -141,6 +185,7 @@ export async function generateEssay(params: Parameters, options: Options = {}) {
         throw geminiHttpError(result.status, await result.json().catch(() => null));
       }
       const body = await result.json();
+      processingResponse = true;
       const text = body.candidates?.[0]?.content?.parts
         ?.filter((p: { thought?: boolean }) => !p.thought)
         .map((p: { text?: string }) => p.text || '')
@@ -164,10 +209,15 @@ export async function generateEssay(params: Parameters, options: Options = {}) {
       }
       return { ...parsed, wordCount: countWords(parsed.essay) };
     } catch (error) {
-      if (attempt === 3 || (error instanceof ServiceError && !error.retryable)) {
-        if (error instanceof ServiceError) throw error;
-        throw new ServiceError(502, 'Gemini-мен байланыс уақыты аяқталды. Қайта көріңіз.');
-      }
+      const failure =
+        error instanceof ServiceError
+          ? error
+          : processingResponse
+            ? new ServiceError(502, 'Gemini жауабын өңдеу мүмкін болмады (GEMINI_RESPONSE_ERROR).')
+            : geminiTransportError(error);
+      // Repeating timeouts/transport errors can duplicate paid requests without
+      // knowing whether Google already generated a response. Fail promptly.
+      if (attempt === 3 || !failure.retryable) throw failure;
     }
   }
   throw new ServiceError(502, 'Эссе жазу мүмкін болмады.');
