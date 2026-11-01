@@ -24,12 +24,12 @@ test('home, responsive navigation, account, generator, editor, exports, private 
   await page.locator('.aside-login').getByRole('link', { name: 'Кіру' }).click();
   await page.getByRole('link', { name: 'Тіркелу', exact: true }).click();
   const email = `writer-${Date.now()}-${testInfo.project.name}@example.test`;
-  await page.getByLabel('Есіміңіз', { exact: true }).fill('Амина');
+  await page.getByLabel('Аты-жөнің', { exact: true }).fill('Амина');
   await page.getByLabel('Электрондық пошта').fill(email);
   await page.getByLabel('Құпия сөз', { exact: true }).fill('BrowserPassword123');
-  await page.getByLabel('Құпия сөзді қайталаңыз').fill('BrowserPassword123');
+  await page.getByLabel('Құпия сөзді растау').fill('BrowserPassword123');
   await page.getByRole('checkbox').check();
-  await page.getByRole('button', { name: 'Аккаунт ашу' }).click();
+  await page.getByRole('button', { name: 'Тіркелу', exact: true }).click();
   await expect(page.getByLabel('Растау коды')).toBeVisible();
   await page.getByLabel('Растау коды').fill(await mailCode(email));
   await page.getByRole('button', { name: 'Поштаны растау', exact: true }).click();
@@ -121,7 +121,7 @@ test('home, responsive navigation, account, generator, editor, exports, private 
   await expect(page.getByLabel('Растау коды')).toBeVisible();
   await page.getByLabel('Растау коды').fill(await mailCode(email));
   await page.getByLabel('Құпия сөз', { exact: true }).fill('ResetBrowserPassword123');
-  await page.getByLabel('Құпия сөзді қайталаңыз').fill('ResetBrowserPassword123');
+  await page.getByLabel('Құпия сөзді растау').fill('ResetBrowserPassword123');
   await page.getByRole('button', { name: 'Құпия сөзді сақтау', exact: true }).click();
   await expect(page).toHaveURL(/\/login/);
   await page.getByLabel('Электрондық пошта').fill(email);
