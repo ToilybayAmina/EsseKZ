@@ -1,7 +1,6 @@
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import {
   ArrowRight,
-  ChevronDown,
   LogOut,
   Menu,
   X,
@@ -86,9 +85,6 @@ export function Header() {
           ))}
         </nav>
         <div className="header-actions">
-          <span className="locale">
-            ҚАЗ <ChevronDown size={12} />
-          </span>
           {user ? (
             <>
               <Link className="button gold small" to="/profile">
