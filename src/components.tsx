@@ -140,7 +140,7 @@ export function Footer() {
         </div>
         <img
           className="footer-ornament"
-          src="/ornaments/EsseKZ_center_ornament.png"
+          src="/footer-ornament.png"
           width={2172}
           height={724}
           alt=""
