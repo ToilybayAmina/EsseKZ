@@ -1,17 +1,9 @@
 import { Link, useLocation, useNavigate } from 'react-router-dom';
-import {
-  ArrowRight,
-  LogOut,
-  Menu,
-  X,
-  LoaderCircle,
-  Feather,
-  Instagram,
-  Mail,
-} from 'lucide-react';
+import { ArrowRight, LogOut, Menu, X, LoaderCircle, Feather, Instagram, Mail } from 'lucide-react';
 import { startTransition, useState, useEffect, type ReactNode } from 'react';
 import { useApp } from './context';
 import './header.css';
+import './footer.css';
 import { post } from './api';
 export function Ornament({ className = '' }: { className?: string }) {
   return (
@@ -139,7 +131,14 @@ export function Footer() {
             <Feather size={30} strokeWidth={1} />
           </div>
         </div>
-        <Ornament />
+        <img
+          className="footer-ornament"
+          src="/ornaments/EsseKZ_center_ornament.png"
+          width={2172}
+          height={724}
+          alt=""
+          aria-hidden="true"
+        />
         <div className="footer-bottom">
           <span>© {new Date().getFullYear()} EsseKZ. Барлық құқықтар қорғалған.</span>
           <span>
