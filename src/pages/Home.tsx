@@ -189,9 +189,6 @@ export function Home() {
               src="/books.svg"
               alt="Қазақ әдебиеті, Сөз өнері және Ой мен тіл кітаптарының иллюстрациясы"
             />
-            <span className="image-caption">
-              <BookOpen size={15} /> Тіл — ұлттың жаны
-            </span>
           </div>
           <div className="about-copy">
             <div className="eyebrow">ТІЛГЕ ҚҰРМЕТ. ОЙҒА ЕРКІНДІК.</div>
