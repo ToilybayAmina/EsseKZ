@@ -1,14 +1,14 @@
 import { useState, type InputHTMLAttributes, type ReactNode } from 'react';
 import { ArrowRight, LoaderCircle } from 'lucide-react';
 
-// Use the supplied transparent PNG unchanged, with its intrinsic proportions.
+// Local PNG artwork, displayed with its intrinsic proportions.
 export function AuthOrnament({ className = '' }: { className?: string }) {
   return (
     <img
       className={`auth-ornament ${className}`}
       src="/ornaments/EsseKZ_center_ornament.png"
-      width={304}
-      height={71}
+      width={2172}
+      height={724}
       alt=""
       aria-hidden="true"
       draggable={false}
@@ -55,8 +55,8 @@ export function AuthLayout({ children }: { children: ReactNode }) {
           key={corner}
           className={`auth-corner auth-corner-${corner}`}
           src="/ornaments/EsseKZ_corner_ornament.png"
-          width={142}
-          height={124}
+          width={1254}
+          height={1254}
           alt=""
           aria-hidden="true"
           draggable={false}
