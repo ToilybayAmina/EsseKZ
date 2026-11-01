@@ -7,6 +7,8 @@
 
 /* This stylesheet is intentionally scoped to authorization pages. */
 .auth-shell.auth-container {
+  position: relative;
+  isolation: isolate;
   --auth-gold-edge: color-mix(in srgb, var(--gold) 80%, var(--gold-ink));
   width: min(1120px, calc(100% - 64px));
   max-width: 1120px;
@@ -40,7 +42,7 @@
   justify-content: center;
   text-align: center;
   min-width: 0;
-  padding: 40px 26px;
+  padding: 48px 26px;
   border-radius: 29px 0 0 29px;
   background: radial-gradient(
     ellipse at 48% 48%,
@@ -102,10 +104,11 @@
   color: var(--gold-ink);
 }
 .auth-shell .auth-brand-divider {
-  width: min(260px, 70%);
-  height: 63px;
-  margin: 16px auto;
-  color: var(--auth-gold-edge);
+  display: block;
+  width: min(270px, 78%);
+  height: auto;
+  margin: 18px auto;
+  object-fit: contain;
 }
 .auth-shell .auth-brand > p {
   z-index: 1;
@@ -120,36 +123,32 @@
 }
 .auth-shell .auth-corner {
   position: absolute;
-  z-index: 0;
-  width: 180px;
-  height: 100px;
-  color: var(--gold);
+  z-index: 2;
+  width: clamp(76px, 8vw, 106px);
+  height: auto;
+  object-fit: contain;
   pointer-events: none;
+  user-select: none;
 }
-.auth-shell .auth-corner-brand-top {
-  top: 10px;
-  left: -42px;
-  transform: rotate(-45deg);
+/* The source is a top-right corner. All four copies share size and inset. */
+.auth-shell .auth-corner-top-right {
+  top: 8px;
+  right: 8px;
 }
-.auth-shell .auth-corner-brand-bottom {
-  bottom: -8px;
-  left: -46px;
-  width: 180px;
-  height: 100px;
-  transform: rotate(36deg);
-  opacity: 0.38;
+.auth-shell .auth-corner-top-left {
+  top: 8px;
+  left: 8px;
+  transform: scaleX(-1);
 }
-.auth-shell .auth-corner-form-top {
-  top: 3px;
-  right: -38px;
-  transform: rotate(45deg);
-  opacity: 0.6;
+.auth-shell .auth-corner-bottom-right {
+  bottom: 8px;
+  right: 8px;
+  transform: scaleY(-1);
 }
-.auth-shell .auth-corner-form-bottom {
-  bottom: 3px;
-  right: -38px;
-  transform: rotate(-45deg);
-  opacity: 0.6;
+.auth-shell .auth-corner-bottom-left {
+  bottom: 8px;
+  left: 8px;
+  transform: scale(-1, -1);
 }
 .auth-shell .auth-particles {
   position: absolute;
@@ -210,7 +209,7 @@
   display: flex;
   align-items: center;
   min-width: 0;
-  padding: 32px clamp(28px, 3vw, 42px);
+  padding: 50px clamp(32px, 3vw, 42px);
   border-radius: 0 29px 29px 0;
   background:
     radial-gradient(ellipse at 80% 3%, var(--surface-gold), transparent 37%),
@@ -337,7 +336,7 @@
   background: linear-gradient(
     115deg,
     var(--gold-light),
-    color-mix(in srgb, var(--gold) 48%, var(--gold-light)) 50%,
+    color-mix(in srgb, var(--gold) 55%, var(--gold-light)) 50%,
     var(--gold-light)
   );
   box-shadow:
@@ -504,58 +503,49 @@
     margin: 20px auto 36px;
   }
   .auth-shell .auth-brand {
-    display: grid;
-    grid-template-columns: 82px minmax(0, 1fr);
-    column-gap: 17px;
-    row-gap: 7px;
-    padding: 25px 22px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 32px 20px 22px;
     border-right: 0;
     border-bottom: 2px solid var(--auth-gold-edge);
     border-radius: 20px 20px 0 0;
-    text-align: left;
+    text-align: center;
     box-shadow: none;
   }
   .auth-shell .auth-logo-halo {
-    width: 82px;
-    grid-column: 1;
-    grid-row: 1 / 3;
-    margin: 0;
+    width: 92px;
+    margin: 12px auto 10px;
   }
   .auth-shell .auth-logo-halo::before {
     inset: -8px;
   }
   .auth-shell .auth-brand-eyebrow {
-    grid-column: 2;
     font-size: 8px;
     letter-spacing: 1.5px;
-    display: block;
   }
   .auth-shell .auth-brand h1 {
-    grid-column: 2;
-    font-size: clamp(17px, 4.4vw, 24px);
+    font-size: clamp(21px, 5.4vw, 26px);
     letter-spacing: -0.6px;
-    line-height: 1.5;
+    line-height: 1.4;
   }
-  .auth-shell .auth-brand > p,
   .auth-shell .auth-brand-divider {
-    display: none;
+    display: block;
+    width: min(210px, 78%);
+    height: auto;
+    margin: 10px auto;
+  }
+  .auth-shell .auth-brand > p {
+    display: block;
+    font-size: 11px;
+    line-height: 1.7;
   }
   .auth-shell .auth-corner {
-    width: 110px;
-    height: 70px;
-    opacity: 0.25;
-  }
-  .auth-shell .auth-corner-brand-bottom {
-    display: none;
-  }
-  .auth-shell .auth-corner-form-bottom {
-    width: 76px;
-    height: 40px;
-    bottom: -13px;
-    right: -22px;
+    width: 56px;
   }
   .auth-shell .auth-form-panel {
-    padding: 22px 20px 28px;
+    padding: 22px 20px 56px;
     border-radius: 0 0 20px 20px;
   }
   .auth-shell .back-link {

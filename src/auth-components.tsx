@@ -1,33 +1,24 @@
 import { useState, type InputHTMLAttributes, type ReactNode } from 'react';
 import { ArrowRight, LoaderCircle } from 'lucide-react';
 
-// A mirrored qoshqar-muiz (ram's horn) motif with a central diamond.
-// Decorative SVGs never enter the focus or accessibility tree.
+// Use the supplied transparent PNG unchanged, with its intrinsic proportions.
 export function AuthOrnament({ className = '' }: { className?: string }) {
-  const horn =
-    'M4 58H25C47 58 63 44 63 27C63 12 52 3 39 3C25 3 15 13 15 25C15 36 23 43 32 43C41 43 47 37 47 30C47 24 43 20 38 21C42 27 39 32 34 32C28 32 26 28 26 24C26 17 32 13 39 13C47 13 52 19 52 27C52 39 40 47 25 47H4Z';
   return (
-    <svg
+    <img
       className={`auth-ornament ${className}`}
-      viewBox="0 0 260 90"
-      fill="currentColor"
+      src="/ornaments/EsseKZ_center_ornament.png"
+      width={304}
+      height={71}
+      alt=""
       aria-hidden="true"
-      focusable="false"
-    >
-      <path d={horn} transform="translate(140 5)" />
-      <path d={horn} transform="translate(120 5) scale(-1 1)" />
-      <path d="M130 17 143 37 130 57 117 37ZM130 26 123 37 130 48 137 37Z" fillRule="evenodd" />
-      <path d="M130 62 140 74 130 86 120 74Z" />
-      <path d="M0 59H53V61H0ZM207 59H260V61H207Z" />
-    </svg>
+      draggable={false}
+    />
   );
 }
 
 export function AuthBrand() {
   return (
     <div className="auth-brand">
-      <AuthOrnament className="auth-corner auth-corner-brand-top" />
-      <AuthOrnament className="auth-corner auth-corner-brand-bottom" />
       <div className="auth-particles" aria-hidden="true">
         {Array.from({ length: 8 }, (_, i) => (
           <i key={i} />
@@ -57,10 +48,20 @@ export function AuthLayout({ children }: { children: ReactNode }) {
     <div className="container auth-container auth-shell">
       <AuthBrand />
       <section className="auth-form-panel" aria-labelledby="auth-title">
-        <AuthOrnament className="auth-corner auth-corner-form-top" />
-        <AuthOrnament className="auth-corner auth-corner-form-bottom" />
         <div className="auth-form-content">{children}</div>
       </section>
+      {['top-left', 'top-right', 'bottom-left', 'bottom-right'].map((corner) => (
+        <img
+          key={corner}
+          className={`auth-corner auth-corner-${corner}`}
+          src="/ornaments/EsseKZ_corner_ornament.png"
+          width={142}
+          height={124}
+          alt=""
+          aria-hidden="true"
+          draggable={false}
+        />
+      ))}
     </div>
   );
 }

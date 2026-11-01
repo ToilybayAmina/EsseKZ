@@ -1,4 +1,62 @@
-import { test, expect } from '@playwright/test';
+import { test, expect, type Page } from '@playwright/test';
+
+async function checkOrnaments(page: Page) {
+  const corners = page.locator('.auth-shell > .auth-corner');
+  await expect(corners).toHaveCount(4);
+  const center = page.locator('.auth-brand-divider');
+  await expect(center).toHaveAttribute('src', '/ornaments/EsseKZ_center_ornament.png');
+  await expect(page.locator('.auth-shell svg.auth-ornament, .auth-light-trails')).toHaveCount(0);
+  for (const image of [...(await corners.all()), center]) {
+    await image.evaluate((el) => (el as HTMLImageElement).decode());
+    const stats = await image.evaluate((el) => {
+      const img = el as HTMLImageElement;
+      const box = img.getBoundingClientRect();
+      const shell = img.closest('.auth-shell')!.getBoundingClientRect();
+      const canvas = document.createElement('canvas');
+      canvas.width = img.naturalWidth;
+      canvas.height = img.naturalHeight;
+      const ctx = canvas.getContext('2d')!;
+      ctx.drawImage(img, 0, 0);
+      const alpha = ctx.getImageData(0, 0, canvas.width, canvas.height).data;
+      let transparent = 0;
+      for (let i = 3; i < alpha.length; i += 4) if (alpha[i] === 0) transparent++;
+      return {
+        ratio: box.width / box.height,
+        intrinsic: img.naturalWidth / img.naturalHeight,
+        inside:
+          box.left >= shell.left &&
+          box.right <= shell.right &&
+          box.top >= shell.top &&
+          box.bottom <= shell.bottom,
+        transparent,
+      };
+    });
+    expect(stats.ratio).toBeCloseTo(stats.intrinsic, 2);
+    expect(stats.inside).toBe(true);
+    expect(stats.transparent).toBeGreaterThan(0);
+  }
+  const boxes = await corners.evaluateAll((images) =>
+    images.map((image) => {
+      const box = image.getBoundingClientRect();
+      return { width: box.width, height: box.height };
+    }),
+  );
+  for (const box of boxes) {
+    expect(box.width).toBeCloseTo(boxes[0].width, 1);
+    expect(box.height).toBeCloseTo(boxes[0].height, 1);
+  }
+  const alignment = await center.evaluate((img) => {
+    const box = img.getBoundingClientRect();
+    const brand = img.closest('.auth-brand')!.getBoundingClientRect();
+    const slogan = img.previousElementSibling!.getBoundingClientRect();
+    return {
+      offset: Math.abs((box.left + box.right - brand.left - brand.right) / 2),
+      below: box.top >= slogan.bottom,
+    };
+  });
+  expect(alignment.offset).toBeLessThan(2);
+  expect(alignment.below).toBe(true);
+}
 
 test('auth pages share the brand layout, adapt without overflow, and honor reduced motion', async ({
   page,
@@ -13,6 +71,7 @@ test('auth pages share the brand layout, adapt without overflow, and honor reduc
     await page.goto(route);
     await expect(page.getByRole('heading', { name: title, exact: true })).toBeVisible();
     await page.evaluate(() => document.fonts.ready);
+    await checkOrnaments(page);
     const logo = page.locator('.auth-brand-logo');
     await expect(logo).toHaveAttribute('src', '/logo.svg');
     expect(
@@ -34,6 +93,7 @@ test('auth pages share the brand layout, adapt without overflow, and honor reduc
     for (const width of [834, 320]) {
       await page.setViewportSize({ width, height: 900 });
       await page.goto('/register');
+      await checkOrnaments(page);
       expect(await page.evaluate(() => document.body.scrollWidth <= innerWidth)).toBe(true);
       await page.screenshot({
         path: `test-results/auth-register-${width}.png`,
