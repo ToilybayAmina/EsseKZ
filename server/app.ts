@@ -1,12 +1,12 @@
 import express from 'express';
 import helmet from 'helmet';
 import cookieParser from 'cookie-parser';
-import { rateLimit } from 'express-rate-limit';
+import { rateLimit, ipKeyGenerator } from 'express-rate-limit';
 import { z } from 'zod';
-import { randomUUID } from 'node:crypto';
+import { randomUUID, randomInt } from 'node:crypto';
 import { existsSync } from 'node:fs';
 import path from 'node:path';
-import nodemailer from 'nodemailer';
+import { smtpMailer, type Mailer } from './mail.ts';
 import PDFDocument from 'pdfkit';
 import { Document, Packer, Paragraph, TextRun, AlignmentType } from 'docx';
 import type { Database } from './db.ts';
@@ -31,7 +31,7 @@ const cookieOptions = {
   path: '/',
 };
 const idSchema = z.uuid();
-export function createApp(db: Database) {
+export function createApp(db: Database, mailer: Mailer = smtpMailer()) {
   const app = express();
   app.disable('x-powered-by');
   if (Number(process.env.TRUST_PROXY_HOPS) > 0)
@@ -63,6 +63,7 @@ export function createApp(db: Database) {
   const authLimit = rateLimit({
     windowMs: 60000,
     limit: 10,
+    keyGenerator: (req) => `${ipKeyGenerator(req.ip || '127.0.0.1')}:${req.baseUrl}`,
     standardHeaders: 'draft-8',
     legacyHeaders: false,
     message: { error: 'Сұрау саны шектен асты. Бір минуттан кейін қайталаңыз.' },
@@ -80,6 +81,7 @@ export function createApp(db: Database) {
       '/api/auth/register',
       '/api/auth/forgot-password',
       '/api/auth/reset-password',
+      '/api/auth/verify-registration',
     ],
     authLimit,
   );
@@ -112,25 +114,101 @@ export function createApp(db: Database) {
       status: 'ok',
       database: 'connected',
       aiConfigured: Boolean(process.env.GEMINI_API_KEY),
-      passwordResetConfigured: Boolean(process.env.SMTP_HOST && process.env.SMTP_FROM),
+      passwordResetConfigured: mailer.configured,
+      registrationConfigured: mailer.configured,
     });
   });
   app.get('/api/auth/me', (_req, res) => res.json({ user: res.locals.user || null }));
+  const verificationSchema = z.object({
+    challengeId: z.uuid(),
+    code: z.string().regex(/^\d{6}$/),
+  });
+  async function sendCode(
+    email: string,
+    purpose: 'register' | 'reset',
+    details: { name?: string; passwordHash?: string; userId?: string } = {},
+    deliver = true,
+  ) {
+    if (!mailer.configured)
+      throw new ServiceError(503, 'Пошта қызметі әлі бапталмаған. Растау коды жіберілмейді.');
+    const id = randomUUID();
+    const code = randomInt(0, 1000000).toString().padStart(6, '0');
+    await db.query('DELETE FROM email_codes WHERE expires_at<NOW()');
+    // One active code per email and purpose; resends are limited across IPs too.
+    const { rows } = await db.query(
+      `INSERT INTO email_codes(id,email,purpose,code_hash,name,password_hash,user_id)
+       VALUES($1,$2,$3,$4,$5,$6,$7)
+       ON CONFLICT(email,purpose) DO UPDATE SET
+         id=EXCLUDED.id,code_hash=EXCLUDED.code_hash,name=EXCLUDED.name,
+         password_hash=EXCLUDED.password_hash,user_id=EXCLUDED.user_id,
+         attempts=0,consumed_at=NULL,created_at=NOW(),expires_at=EXCLUDED.expires_at
+       WHERE email_codes.created_at < NOW()-INTERVAL '1 minute' RETURNING id`,
+      [
+        id,
+        email,
+        purpose,
+        tokenHash(`${id}:${code}`),
+        details.name || null,
+        details.passwordHash || null,
+        details.userId || null,
+      ],
+    );
+    if (!rows.length) throw new ServiceError(429, 'Жаңа кодты бір минуттан кейін сұраңыз.');
+    try {
+      if (deliver) await mailer.send({ email, code, purpose });
+    } catch {
+      await db.query('DELETE FROM email_codes WHERE id=$1', [id]);
+      throw new ServiceError(503, 'Пошта қызметі уақытша қолжетімсіз. Кейінірек қайталаңыз.');
+    }
+    return id;
+  }
+  async function consumeCode(challengeId: string, code: string, purpose: string) {
+    const hash = tokenHash(`${challengeId}:${code}`);
+    // Increment attempts and consume a matching code in the same atomic update.
+    const { rows } = await db.query(
+      `UPDATE email_codes SET attempts=attempts+1,
+         consumed_at=CASE WHEN code_hash=$2 THEN NOW() ELSE NULL END
+       WHERE id=$1 AND purpose=$3 AND consumed_at IS NULL AND expires_at>NOW() AND attempts<5
+       RETURNING *, code_hash=$2 AS valid`,
+      [challengeId, hash, purpose],
+    );
+    if (!rows[0]?.valid)
+      throw new ServiceError(
+        400,
+        'Код қате, мерзімі аяқталған немесе қолданылған. Жаңа код сұраңыз.',
+      );
+    return rows[0];
+  }
   app.post('/api/auth/register', async (req, res) => {
     const data = registerSchema.parse(req.body);
+    const existing = await db.query('SELECT id FROM users WHERE email=$1', [data.email]);
+    if (existing.rows.length)
+      throw new ServiceError(409, 'Бұл email тіркелген. Аккаунтыңызға кіріңіз.');
+    const challengeId = await sendCode(data.email, 'register', {
+      name: data.name,
+      passwordHash: await hashPassword(data.password),
+    });
+    res
+      .status(202)
+      .json({ challengeId, message: 'Поштаңызға 6 таңбалы код жіберілді. Код 10 минут жарамды.' });
+  });
+  app.post('/api/auth/verify-registration', async (req, res) => {
+    const { challengeId, code } = verificationSchema.parse(req.body);
+    const pending = await consumeCode(challengeId, code, 'register');
     const id = randomUUID();
     try {
       await db.query('INSERT INTO users(id,name,email,password_hash) VALUES($1,$2,$3,$4)', [
         id,
-        data.name,
-        data.email,
-        await hashPassword(data.password),
+        pending.name,
+        pending.email,
+        pending.password_hash,
       ]);
     } catch (error) {
       if ((error as { code?: string }).code === '23505')
         throw new ServiceError(409, 'Бұл email тіркелген. Аккаунтыңызға кіріңіз.');
       throw error;
     }
+    await db.query('DELETE FROM email_codes WHERE id=$1', [challengeId]);
     await session(id, res);
     const { rows } = await db.query('SELECT id,name,email,created_at FROM users WHERE id=$1', [id]);
     res.status(201).json({ user: rows[0] });
@@ -163,45 +241,44 @@ export function createApp(db: Database) {
   });
   app.post('/api/auth/forgot-password', async (req, res) => {
     const { email } = registerSchema.pick({ email: true }).parse(req.body);
-    if (!process.env.SMTP_HOST || !process.env.SMTP_FROM)
+    if (!mailer.configured)
       throw new ServiceError(503, 'Құпия сөзді қалпына келтіру үшін пошта қызметі әлі қосылмаған.');
     const { rows } = await db.query('SELECT id FROM users WHERE email=$1', [email]);
-    if (rows[0]) {
-      const token = newToken();
-      await db.query(
-        "INSERT INTO password_resets(token_hash,user_id,expires_at) VALUES($1,$2,NOW()+INTERVAL '30 minutes')",
-        [tokenHash(token), rows[0].id],
-      );
-      const transport = nodemailer.createTransport({
-        host: process.env.SMTP_HOST,
-        port: Number(process.env.SMTP_PORT) || 587,
-        secure: process.env.SMTP_PORT === '465',
-        auth: process.env.SMTP_USER
-          ? { user: process.env.SMTP_USER, pass: process.env.SMTP_PASS }
-          : undefined,
-        connectionTimeout: 10000,
-      });
-      try {
-        await transport.sendMail({
-          from: process.env.SMTP_FROM,
-          to: email,
-          subject: 'EsseKZ: құпия сөзді қалпына келтіру',
-          text: `Құпия сөзді жаңарту үшін: ${origin}/reset-password?token=${token}\nСілтеме 30 минут жарамды. Егер сұрау жібермесеңіз, хатты елемеңіз.`,
-        });
-      } catch {
-        await db.query('DELETE FROM password_resets WHERE token_hash=$1', [tokenHash(token)]);
-        throw new ServiceError(503, 'Пошта қызметі уақытша қолжетімсіз.');
-      }
-    }
-    res.json({ message: 'Осы email тіркелген болса, қалпына келтіру сілтемесі жіберілді.' });
+    const challengeId = await sendCode(email, 'reset', { userId: rows[0]?.id }, Boolean(rows[0]));
+    res.json({
+      challengeId,
+      message: 'Осы email тіркелген болса, растау коды жіберілді. Код 10 минут жарамды.',
+    });
   });
   app.post('/api/auth/reset-password', async (req, res) => {
+    if (req.body?.challengeId !== undefined || req.body?.code !== undefined) {
+      const { challengeId, code, password } = verificationSchema
+        .extend({ password: passwordSchema })
+        .parse(req.body);
+      const passwordHash = await hashPassword(password);
+      const pending = await consumeCode(challengeId, code, 'reset');
+      if (!pending.user_id)
+        throw new ServiceError(
+          400,
+          'Код қате, мерзімі аяқталған немесе қолданылған. Жаңа код сұраңыз.',
+        );
+      await db.query(
+        `WITH changed AS (UPDATE users SET password_hash=$2 WHERE id=$1 RETURNING id),
+         old_links AS (DELETE FROM password_resets WHERE user_id IN (SELECT id FROM changed)),
+         codes AS (DELETE FROM email_codes WHERE user_id IN (SELECT id FROM changed))
+         DELETE FROM sessions WHERE user_id IN (SELECT id FROM changed)`,
+        [pending.user_id, passwordHash],
+      );
+      return res
+        .clearCookie('essekz_session', cookieOptions)
+        .json({ message: 'Құпия сөз жаңартылды. Қайта кіріңіз.' });
+    }
     const { token, password } = z
       .object({ token: z.string().regex(/^[a-f0-9]{64}$/), password: passwordSchema })
       .parse(req.body);
     const passwordHash = await hashPassword(password);
     const { rows } = await db.query(
-      `WITH consumed AS (DELETE FROM password_resets WHERE token_hash=$1 AND expires_at>NOW() RETURNING user_id), changed AS (UPDATE users SET password_hash=$2 WHERE id IN (SELECT user_id FROM consumed) RETURNING id), revoked AS (DELETE FROM sessions WHERE user_id IN (SELECT id FROM changed)) SELECT id FROM changed`,
+      `WITH consumed AS (DELETE FROM password_resets WHERE token_hash=$1 AND expires_at>NOW() RETURNING user_id), changed AS (UPDATE users SET password_hash=$2 WHERE id IN (SELECT user_id FROM consumed) RETURNING id), codes AS (DELETE FROM email_codes WHERE user_id IN (SELECT id FROM changed)), other_links AS (DELETE FROM password_resets WHERE user_id IN (SELECT id FROM changed) AND token_hash<>$1), revoked AS (DELETE FROM sessions WHERE user_id IN (SELECT id FROM changed)) SELECT id FROM changed`,
       [tokenHash(token), passwordHash],
     );
     if (!rows.length)

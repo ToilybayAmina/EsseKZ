@@ -21,13 +21,15 @@ export async function openDatabase(
     await local.waitReady;
     db = { query: (sql, params) => local.query(sql, params), close: () => local.close() };
   }
-  const sql = await readFile(new URL('./migrations/001_initial.sql', import.meta.url), 'utf8');
-  // Both native PostgreSQL and PGlite execute the same idempotent schema.
-  for (const statement of sql
-    .split(';')
-    .map((s) => s.trim())
-    .filter(Boolean))
-    await db.query(statement);
+  for (const migration of ['001_initial.sql', '002_email_codes.sql']) {
+    const sql = await readFile(new URL(`./migrations/${migration}`, import.meta.url), 'utf8');
+    // Both native PostgreSQL and PGlite execute the same idempotent schema.
+    for (const statement of sql
+      .split(';')
+      .map((s) => s.trim())
+      .filter(Boolean))
+      await db.query(statement);
+  }
   await db.query('SELECT 1');
   return db;
 }

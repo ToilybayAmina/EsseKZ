@@ -14,10 +14,10 @@ export default defineConfig({
     { name: 'mobile', use: { ...devices['iPhone 13'], defaultBrowserType: 'chromium' } },
   ],
   webServer: {
-    command: 'npm run dev',
+    command: 'npx concurrently -k "tsx tests/e2e-server.ts" "vite --host 0.0.0.0"',
     url: 'http://localhost:5173/api/health',
     timeout: 60000,
-    reuseExistingServer: !process.env.CI,
+    reuseExistingServer: false,
     env: {
       LOCAL_DB_PATH: '.local/e2e-postgres',
       GEMINI_API_KEY: '',

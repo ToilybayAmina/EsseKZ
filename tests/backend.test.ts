@@ -7,6 +7,13 @@ import { createApp } from '../server/app.ts';
 import { defaults } from '../shared/schema.ts';
 import { tokenHash } from '../server/auth.ts';
 
+const mailbox = new Map<string, string>();
+const mailer = {
+  configured: true,
+  async send({ email, code }: { email: string; code: string }) {
+    mailbox.set(email, code);
+  },
+};
 let db: Database;
 let server: Server;
 let base: string;
@@ -16,17 +23,26 @@ let userId: string;
 const sample =
   'Қазақ тілінде еркін жазу ойды жүйелеуден басталады. Әр адам өз пікірін нақты дәлелмен жеткізе алады. Ана тілімізді құрметтеу — күнделікті ізденіс пен жауапкершілік.';
 async function request(url: string, method = 'GET', body?: unknown, session = cookie) {
-  return fetch(base + url, {
+  const response = await fetch(base + url, {
     method,
     headers: { 'Content-Type': 'application/json', Cookie: session },
     body: body === undefined ? undefined : JSON.stringify(body),
   });
+  if (url === '/api/auth/register' && response.status === 202) {
+    const { challengeId } = await response.json();
+    const email = (body as { email: string }).email.toLowerCase();
+    return request('/api/auth/verify-registration', 'POST', {
+      challengeId,
+      code: mailbox.get(email),
+    });
+  }
+  return response;
 }
 before(async () => {
   delete process.env.GEMINI_API_KEY;
   delete process.env.SMTP_HOST;
   db = await openDatabase(process.env.TEST_DATABASE_URL || '', 'memory://');
-  server = createApp(db).listen(0, '127.0.0.1');
+  server = createApp(db, mailer).listen(0, '127.0.0.1');
   await new Promise<void>((r) => server.once('listening', r));
   base = `http://127.0.0.1:${(server.address() as { port: number }).port}`;
 });
@@ -169,7 +185,9 @@ test('ownership, input validation, and cross-origin mutations are enforced', asy
   assert.equal(cross.status, 403);
 });
 test('password reset reports absent mail service and consumes real tokens atomically without sessions', async () => {
+  mailer.configured = false;
   const r = await request('/api/auth/forgot-password', 'POST', { email: 'amina@example.test' });
+  mailer.configured = true;
   assert.equal(r.status, 503);
   await db.query('DELETE FROM sessions WHERE user_id=$1', [userId]);
   const token = 'ab'.repeat(32);

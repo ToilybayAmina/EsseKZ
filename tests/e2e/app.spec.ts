@@ -1,4 +1,10 @@
 import { test, expect } from '@playwright/test';
+import { readFile } from 'node:fs/promises';
+
+async function mailCode(email: string) {
+  return JSON.parse(await readFile(`.local/e2e-mail/${encodeURIComponent(email)}.json`, 'utf8'))
+    .code as string;
+}
 test('home, responsive navigation, account, manual editor, exports, private history and logout', async ({
   page,
 }, testInfo) => {
@@ -29,6 +35,9 @@ test('home, responsive navigation, account, manual editor, exports, private hist
   await page.getByLabel('Құпия сөзді қайталаңыз').fill('BrowserPassword123');
   await page.getByRole('checkbox').check();
   await page.getByRole('button', { name: 'Аккаунт ашу' }).click();
+  await expect(page.getByLabel('Растау коды')).toBeVisible();
+  await page.getByLabel('Растау коды').fill(await mailCode(email));
+  await page.getByRole('button', { name: 'Поштаны растау', exact: true }).click();
   await expect(page).toHaveURL(/\/generate/);
   await page.getByRole('button', { name: 'Өзім жазамын' }).click();
   await expect(page.getByLabel('Сенің мәтінің')).toHaveValue(/Қазақ тілінде/);
@@ -84,5 +93,18 @@ test('home, responsive navigation, account, manual editor, exports, private hist
   await expect(page).toHaveURL('/');
   await page.goto('/history');
   await expect(page).toHaveURL(/\/login/);
+  await page.getByRole('link', { name: 'Құпия сөзді ұмыттыңыз ба?' }).click();
+  await page.getByLabel('Электрондық пошта').fill(email);
+  await page.getByRole('button', { name: 'Код жіберу', exact: true }).click();
+  await expect(page.getByLabel('Растау коды')).toBeVisible();
+  await page.getByLabel('Растау коды').fill(await mailCode(email));
+  await page.getByLabel('Құпия сөз', { exact: true }).fill('ResetBrowserPassword123');
+  await page.getByLabel('Құпия сөзді қайталаңыз').fill('ResetBrowserPassword123');
+  await page.getByRole('button', { name: 'Құпия сөзді сақтау', exact: true }).click();
+  await expect(page).toHaveURL(/\/login/);
+  await page.getByLabel('Электрондық пошта').fill(email);
+  await page.getByLabel('Құпия сөз', { exact: true }).fill('ResetBrowserPassword123');
+  await page.getByRole('button', { name: 'Кіру', exact: true }).click();
+  await expect(page).toHaveURL(/\/generate/);
   expect(errors).toEqual([]);
 });
