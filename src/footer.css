@@ -48,9 +48,14 @@
   text-decoration: underline;
   text-underline-offset: 4px;
 }
-.site-footer .footer-note > svg {
-  width: 42px;
-  height: 42px;
+.site-footer .footer-feather {
+  display: block;
+  width: 112px;
+  max-width: 100%;
+  height: auto;
+  object-fit: contain;
+  margin-top: 12px;
+  pointer-events: none;
 }
 .site-footer .footer-ornament {
   display: block;
@@ -120,6 +125,9 @@
   }
   .site-footer .footer-note > p {
     margin-top: 8px;
+  }
+  .site-footer .footer-feather {
+    width: 96px;
   }
   .site-footer .footer-ornament {
     width: min(240px, 85%);

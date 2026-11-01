@@ -128,7 +128,14 @@ export function Footer() {
               <br />
               Ойға еркіндік. Шабытқа жол.
             </p>
-            <Feather size={30} strokeWidth={1} />
+            <img
+              className="footer-feather"
+              src="/footer-feather.png"
+              width={1254}
+              height={1254}
+              alt=""
+              aria-hidden="true"
+            />
           </div>
         </div>
         <img
