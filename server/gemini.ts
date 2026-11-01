@@ -229,7 +229,7 @@ export async function generateEssay(params: Parameters, options: Options = {}) {
         waitBeforeRetry = false;
         continue;
       }
-      return { title: parsed.title, essay, wordCount: countWords(essay) };
+      return { title: params.title, essay, wordCount: countWords(essay) };
     } catch (error) {
       waitBeforeRetry = true;
       const failure =

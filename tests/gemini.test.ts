@@ -49,6 +49,7 @@ test('provider retries 429/503 four total attempts with 5/10/15 second delays', 
 test('structured provider JSON is validated and word count is computed on server', async () => {
   // Explicit test fixture, never used in the running application.
   const draft = structuredFixture(150);
+  draft.title = 'Қазақ тілінің қоғамдағы маңызы';
   let prompt = '';
   const request = (async (_url, options) => {
     prompt = String(options?.body);
@@ -67,6 +68,7 @@ test('structured provider JSON is validated and word count is computed on server
     { key: 'test-key', request },
   );
   assert.equal(r.wordCount, 150);
+  assert.equal(r.title, 'Тіл байлығы');
   assert.equal(splitParagraphs(r.essay).length, 5);
   assert.match(prompt, /Мысалы/);
   assert.match(prompt, /responseMimeType/);
