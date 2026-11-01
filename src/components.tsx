@@ -12,6 +12,7 @@ import {
 } from 'lucide-react';
 import { startTransition, useState, useEffect, type ReactNode } from 'react';
 import { useApp } from './context';
+import './header.css';
 import { post } from './api';
 export function Ornament({ className = '' }: { className?: string }) {
   return (

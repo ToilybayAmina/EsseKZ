@@ -1,0 +1,170 @@
+@import '@fontsource/noto-sans/600.css';
+@import '@fontsource/noto-sans/700.css';
+@import '@fontsource/noto-sans/800.css';
+
+/* Header typography only: keep page content and the footer unchanged. */
+.site-header {
+  font-family: 'Noto Sans', sans-serif;
+}
+.site-header .brand {
+  gap: 13px;
+  flex-shrink: 0;
+}
+.site-header .brand img {
+  width: 62px;
+  height: 62px;
+}
+.site-header .brand > div {
+  font-size: 36px;
+  font-weight: 800;
+  letter-spacing: -1.8px;
+  line-height: 1.08;
+  color: var(--ink);
+}
+.site-header .brand > div > span {
+  color: color-mix(in srgb, var(--gold) 65%, var(--gold-ink));
+  background: linear-gradient(
+    115deg,
+    color-mix(in srgb, var(--gold) 55%, var(--gold-ink)),
+    color-mix(in srgb, var(--gold) 70%, var(--gold-ink)) 48%,
+    color-mix(in srgb, var(--gold) 55%, var(--gold-ink))
+  );
+  background-clip: text;
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+.site-header .brand small {
+  font-size: 9px;
+  letter-spacing: 2px;
+  font-weight: 700;
+  margin-top: 7px;
+}
+.site-header .navigation {
+  gap: 28px;
+}
+.site-header .navigation > a {
+  font-size: 15px;
+  font-weight: 600;
+  letter-spacing: -0.15px;
+  color: var(--ink);
+  transition: color 160ms;
+}
+.site-header .navigation > a:hover,
+.site-header .navigation > a.active {
+  color: var(--blue);
+}
+.site-header .navigation > a.active::after {
+  width: 22px;
+  left: calc(50% - 11px);
+}
+.site-header .locale {
+  font-size: 12px;
+  color: var(--ink);
+}
+.site-header .header-actions > .button {
+  font-size: 14px;
+  min-height: 44px;
+  padding: 10px 19px;
+  font-weight: 700;
+}
+@media (min-width: 641px) and (max-width: 1100px) {
+  .site-header .header-inner {
+    gap: 14px;
+  }
+  .site-header .brand {
+    gap: 10px;
+  }
+  .site-header .brand img {
+    width: 50px;
+    height: 50px;
+  }
+  .site-header .brand > div {
+    font-size: 30px;
+    letter-spacing: -1.3px;
+  }
+  .site-header .brand small {
+    font-size: 8px;
+    letter-spacing: 1.6px;
+  }
+  .site-header .navigation {
+    gap: 17px;
+  }
+  .site-header .navigation > a {
+    font-size: 14px;
+  }
+  .site-header .header-actions > .button {
+    padding-inline: 14px;
+  }
+}
+@media (max-width: 640px) {
+  .site-header {
+    height: 82px;
+  }
+  .site-header .brand {
+    gap: 9px;
+  }
+  .site-header .brand img {
+    width: 48px;
+    height: 48px;
+  }
+  .site-header .brand > div {
+    font-size: 28px;
+    letter-spacing: -1.3px;
+  }
+  .site-header .brand small {
+    font-size: 6.5px;
+    letter-spacing: 1.4px;
+    margin-top: 5px;
+  }
+  .site-header .header-actions > .button {
+    min-height: 42px;
+    font-size: 13px;
+    padding: 9px 12px;
+    max-width: 96px;
+  }
+  .site-header .navigation {
+    top: 81px;
+  }
+  .site-header .navigation > a {
+    font-size: 16px;
+    min-height: 46px;
+  }
+  .site-header .navigation > a.active::after {
+    left: 12px;
+  }
+}
+@media (max-width: 380px) {
+  .site-header .header-inner {
+    gap: 8px;
+  }
+  .site-header .brand {
+    gap: 7px;
+  }
+  .site-header .brand img {
+    width: 44px;
+    height: 44px;
+  }
+  .site-header .brand > div {
+    font-size: 26px;
+  }
+  .site-header .brand small {
+    font-size: 6px;
+  }
+  .site-header .header-actions > .button {
+    font-size: 12px;
+    padding-inline: 10px;
+    max-width: 82px;
+  }
+}
+@media (forced-colors: active) {
+  .site-header .brand > div > span {
+    background: none;
+    color: LinkText;
+    -webkit-text-fill-color: currentColor;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .site-header .navigation > a {
+    transition: none;
+  }
+}
