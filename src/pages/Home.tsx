@@ -15,6 +15,7 @@ import {
 } from 'lucide-react';
 import { Ornament } from '../components';
 import { defaults } from '../../shared/schema';
+import '../home-hero.css';
 export const faqs = [
   [
     'EsseKZ қалай жұмыс істейді?',
@@ -60,12 +61,12 @@ export function Home() {
   }
   return (
     <>
-      <section className="hero-wrap">
-        <div className="container hero">
+      <section className="hero-wrap home-hero-wrap">
+        <div className="container hero home-hero">
           <div className="hero-copy">
             <div className="hero-label">
-              <span />
-              ҚАЗАҚ ТІЛІНДЕГІ ЖАЗУ КӨМЕКШІСІ
+              <Sparkles size={17} aria-hidden="true" />
+              ҚАЗАҚ ТІЛІНДЕГІ ЖАЗУ КЕҢІСТІГІ
             </div>
             <h1>
               Ойың — қазына.
@@ -73,12 +74,12 @@ export function Home() {
               Сөзің — <span>қанат.</span>
             </h1>
             <p>
-              Қазақ тілінде эссе жазуға арналған интеллектуалды кеңістік. Ойыңды жүйелеп, әр сөзіңе
-              мән бер.
+              Қазақ тілінде эссе жазуға арналған заманауи платформа.
+              <br /> Ойыңды жүйеле, өз стиліңді тап.
             </p>
             <div className="hero-buttons">
               <Link to="/generate" className="button gold">
-                Эссе жазуды бастау <ArrowUpRight size={19} />
+                Эссе жазуды бастау <ArrowRight size={21} />
               </Link>
               <a className="text-button" href="#how-it-works">
                 Қалай жұмыс істейді? <ArrowRight size={17} />
@@ -86,28 +87,52 @@ export function Home() {
             </div>
             <div className="hero-bottom">
               <span className="little-icon">
-                <Feather size={17} />
+                <img
+                  src="/footer-feather.png"
+                  width={1254}
+                  height={1254}
+                  alt=""
+                  aria-hidden="true"
+                />
               </span>
-              <span>Ана тіліңде. Өз мәнеріңмен.</span>
+              <span>Авторлық стильді дамыту</span>
               <div className="small-divider" />
-              <span>Жаңа ойға жол аш</span>
+              <span>Жазу мәдениеті</span>
             </div>
           </div>
           <div className="hero-art">
-            <div className="orbit orbit-one" />
-            <div className="orbit orbit-two" />
-            <div className="hero-star star-one">✦</div>
-            <div className="hero-star star-two">✧</div>
+            <div className="orbit orbit-one" aria-hidden="true" />
+            <div className="orbit orbit-two" aria-hidden="true" />
+            <div className="hero-gold-orbit" aria-hidden="true" />
+            <Sparkles className="hero-star star-one" size={31} aria-hidden="true" />
+            <Sparkles className="hero-star star-two" size={24} aria-hidden="true" />
             <div className="hero-seal">
               <img src="/logo.svg" alt="Қазақы оюмен көмкерілген алтын қаламұш пен қанат" />
             </div>
+            <img
+              className="hero-feather"
+              src="/footer-feather.png"
+              width={1254}
+              height={1254}
+              alt=""
+              aria-hidden="true"
+            />
             <div className="floating-note">
-              <span>✦</span> Әр сөзде — өзіңнің ізің.
+              <Sparkles size={16} aria-hidden="true" /> Әр идея — жаңа эссе
             </div>
           </div>
-          <div className="hero-corner" aria-hidden="true">
-            ❧
-          </div>
+          <div className="hero-wave" aria-hidden="true" />
+          {['top-left', 'top-right', 'bottom-left', 'bottom-right'].map((corner) => (
+            <img
+              key={corner}
+              className={`home-hero-corner home-hero-corner-${corner}`}
+              src="/ornaments/EsseKZ_corner_ornament.png"
+              width={1254}
+              height={1254}
+              alt=""
+              aria-hidden="true"
+            />
+          ))}
         </div>
       </section>
       <section className="container quick-start">
