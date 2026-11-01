@@ -6,7 +6,6 @@ import {
   FileText,
   Info,
   LoaderCircle,
-  PenLine,
   ShieldCheck,
   Sparkles,
 } from 'lucide-react';
@@ -40,14 +39,6 @@ export function Generate() {
       ? location.state.parameters
       : initial(),
   );
-  const [manual, setManual] = useState(false);
-  const [text, setText] = useState(() => {
-    try {
-      return sessionStorage.getItem('essekz-draft') || '';
-    } catch {
-      return '';
-    }
-  });
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
   useEffect(() => {
@@ -55,11 +46,6 @@ export function Generate() {
       sessionStorage.setItem('essekz-parameters', JSON.stringify(params));
     } catch {}
   }, [params]);
-  useEffect(() => {
-    try {
-      sessionStorage.setItem('essekz-draft', text);
-    } catch {}
-  }, [text]);
   function update<K extends keyof Parameters>(key: K, value: Parameters[K]) {
     setParams((p) => ({ ...p, [key]: value }));
   }
@@ -71,16 +57,7 @@ export function Generate() {
       return setError('Тақырып кемінде 3 таңбадан тұруы керек. Параметрлерді тексеріңіз.');
     setBusy(true);
     try {
-      const data = await post<{ essay: Essay }>(
-        manual ? '/essays' : '/essays/generate',
-        manual ? { ...params, essayText: text } : params,
-      );
-      if (manual) {
-        setText('');
-        try {
-          sessionStorage.removeItem('essekz-draft');
-        } catch {}
-      }
+      const data = await post<{ essay: Essay }>('/essays/generate', params);
       navigate(`/result/${data.essay.id}`);
     } catch (e) {
       setError((e as Error).message);
@@ -98,36 +75,17 @@ export function Generate() {
       <div className="generate-layout">
         <section className="panel generator-panel">
           <div className="mode-tabs">
-            <button
-              className={!manual ? 'selected' : ''}
-              onClick={() => {
-                setManual(false);
-                setError('');
-              }}
-            >
+            <button className="selected" type="button">
               <Sparkles size={17} />
               AI арқылы жазу
             </button>
-            <button
-              className={manual ? 'selected' : ''}
-              onClick={() => {
-                setManual(true);
-                setError('');
-              }}
-            >
-              <PenLine size={17} />
-              Өзім жазамын
-            </button>
           </div>
-          {!manual && !health?.aiConfigured && (
+          {!loading && health && !health.aiConfigured && (
             <div className="info-banner">
               <Info size={19} />
               <div>
-                <strong>Gemini-ді келесі қадамда қосамыз</strong>
-                <p>
-                  Параметрлерді қазір дайындай аласыз. Өз мәтініңізді сақтау үшін «Өзім жазамын»
-                  бөлімін таңдаңыз.
-                </p>
+                <strong>Gemini қызметі әлі қосылмаған</strong>
+                <p>Эссе генерациясы үшін серверде Gemini API кілтін баптау қажет.</p>
               </div>
             </div>
           )}
@@ -277,50 +235,28 @@ export function Generate() {
                   </span>
                 </label>
               </div>
-              {manual && (
-                <>
-                  <div className="form-divider" />
-                  <label htmlFor="manual-text">
-                    Сенің мәтінің <span className="required">*</span>
-                  </label>
-                  <textarea
-                    id="manual-text"
-                    required
-                    rows={12}
-                    maxLength={30000}
-                    value={text}
-                    onChange={(e) => setText(e.target.value)}
-                    placeholder="Алғашқы сөйлеміңді осында жаз…"
-                  />
-                  <p className="field-help">
-                    Бұл мәтін AI арқылы жазылған деп белгіленбейді. Өз жұмысыңыз ретінде сақталады.
-                  </p>
-                </>
-              )}
               {error && <ErrorBox>{error}</ErrorBox>}
               <button
                 className="button gold full-width generate-button"
-                disabled={busy || loading || (!manual && !health?.aiConfigured)}
+                disabled={busy || loading || !health?.aiConfigured}
                 type="submit"
               >
                 {busy ? (
                   <>
                     <LoaderCircle className="spin" size={20} />
-                    {manual ? 'Сақталып жатыр…' : 'Эссе жазылып жатыр…'}
+                    Эссе жазылып жатыр…
                   </>
                 ) : (
                   <>
-                    {manual ? <PenLine size={19} /> : <Sparkles size={19} />}{' '}
-                    {user ? (manual ? 'Мәтінді сақтау' : 'Эссе жазу') : 'Кіріп, жалғастыру'}
+                    <Sparkles size={19} />
+                    {user ? 'Эссе жазу' : 'Кіріп, жалғастыру'}
                     <ArrowRight size={19} />
                   </>
                 )}
               </button>
-              {!manual && (
-                <p className="field-help centered">
-                  AI мәтіні дайындалғанда осы бетті ашық қалдырыңыз.
-                </p>
-              )}
+              <p className="field-help centered">
+                AI мәтіні дайындалғанда осы бетті ашық қалдырыңыз.
+              </p>
             </fieldset>
           </form>
         </section>
