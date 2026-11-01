@@ -8,11 +8,11 @@
 /* This stylesheet is intentionally scoped to authorization pages. */
 .auth-shell.auth-container {
   --auth-gold-edge: color-mix(in srgb, var(--gold) 80%, var(--gold-ink));
-  width: min(1440px, calc(100% - 80px));
-  max-width: 1440px;
+  width: min(1120px, calc(100% - 64px));
+  max-width: 1120px;
   grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
-  min-height: 780px;
-  margin: 38px auto 60px;
+  min-height: 660px;
+  margin: 28px auto 44px;
   border: 2px solid var(--auth-gold-edge);
   border-radius: 36px;
   padding: 5px;
@@ -40,14 +40,14 @@
   justify-content: center;
   text-align: center;
   min-width: 0;
-  padding: 62px 30px;
+  padding: 40px 26px;
   border-radius: 29px 0 0 29px;
   background: radial-gradient(
     ellipse at 48% 48%,
     var(--white) 4%,
     color-mix(in srgb, var(--ice) 90%, var(--white)) 40%,
-    color-mix(in srgb, var(--cyan) 67%, var(--white)) 83%,
-    var(--cyan)
+    color-mix(in srgb, var(--cyan) 43%, var(--white)) 83%,
+    color-mix(in srgb, var(--cyan) 62%, var(--white))
   );
   border-right: 2px solid var(--auth-gold-edge);
   box-shadow: inset -3px 0 0 var(--gold-light);
@@ -62,23 +62,20 @@
   font-size: 12px;
   letter-spacing: 3.6px;
 }
-.auth-shell .auth-brand-eyebrow::before,
-.auth-shell .auth-brand-eyebrow::after {
-  content: '';
-  width: 34px;
-  height: 1px;
-  background: var(--gold);
-}
 .auth-shell .auth-logo-halo {
   position: relative;
-  width: clamp(176px, 18vw, 240px);
-  margin: 42px auto 26px;
+  width: clamp(176px, 17vw, 210px);
+  margin: 28px auto 20px;
 }
 .auth-shell .auth-logo-halo::before {
   content: '';
   position: absolute;
   inset: -20px;
-  border: 1px solid color-mix(in srgb, var(--white) 90%, transparent);
+  background: radial-gradient(
+    circle,
+    color-mix(in srgb, var(--white) 65%, transparent),
+    transparent 72%
+  );
   border-radius: 50%;
   box-shadow: 0 0 35px 15px color-mix(in srgb, var(--white) 45%, transparent);
 }
@@ -94,9 +91,9 @@
   z-index: 1;
   font-family: 'Noto Serif', serif;
   font-weight: 400;
-  font-size: clamp(30px, 3.05vw, 46px);
+  font-size: clamp(29px, 2.8vw, 38px);
   line-height: 1.5;
-  letter-spacing: -1.7px;
+  letter-spacing: -1.1px;
   color: var(--ink);
   overflow-wrap: anywhere;
 }
@@ -105,16 +102,16 @@
   color: var(--gold-ink);
 }
 .auth-shell .auth-brand-divider {
-  width: min(290px, 70%);
+  width: min(260px, 70%);
   height: 63px;
-  margin: 24px auto 20px;
+  margin: 16px auto;
   color: var(--auth-gold-edge);
 }
 .auth-shell .auth-brand > p {
   z-index: 1;
   color: var(--ink);
   font-family: 'Noto Serif', serif;
-  font-size: clamp(15px, 1.45vw, 20px);
+  font-size: clamp(14px, 1.3vw, 17px);
   line-height: 1.8;
 }
 .auth-shell .auth-ornament {
@@ -153,19 +150,6 @@
   right: -38px;
   transform: rotate(-45deg);
   opacity: 0.6;
-}
-.auth-shell .auth-light-trails {
-  position: absolute;
-  z-index: -1;
-  inset: -8% -45% 2% -38%;
-  border: 1px solid color-mix(in srgb, var(--white) 85%, transparent);
-  border-radius: 50%;
-  transform: rotate(-28deg);
-  box-shadow:
-    0 9px 0 -8px var(--gold-light),
-    0 28px 0 -27px var(--white),
-    0 39px 0 -38px var(--gold-light),
-    0 42px 22px -30px var(--gold-light);
 }
 .auth-shell .auth-particles {
   position: absolute;
@@ -226,7 +210,7 @@
   display: flex;
   align-items: center;
   min-width: 0;
-  padding: 42px clamp(30px, 3.5vw, 60px);
+  padding: 32px clamp(28px, 3vw, 42px);
   border-radius: 0 29px 29px 0;
   background:
     radial-gradient(ellipse at 80% 3%, var(--surface-gold), transparent 37%),
@@ -246,10 +230,10 @@
   min-height: 44px;
   font-size: 14px;
   color: var(--ink);
-  margin-bottom: 36px;
+  margin-bottom: 22px;
 }
 .auth-shell .auth-form-panel h2 {
-  font-size: clamp(25px, 2.2vw, 33px);
+  font-size: clamp(24px, 2.05vw, 29px);
   font-weight: 800;
   letter-spacing: -0.9px;
   line-height: 1.35;
@@ -262,10 +246,10 @@
   line-height: 1.8;
 }
 .auth-shell .auth-form-panel form {
-  margin-top: 28px;
+  margin-top: 22px;
 }
 .auth-shell .auth-field + .auth-field {
-  margin-top: 21px;
+  margin-top: 17px;
 }
 .auth-shell .auth-field label {
   font-weight: 700;
@@ -280,8 +264,8 @@
   font-size: 16px;
   border: 1px solid var(--blue);
   border-radius: 12px;
-  min-height: 54px;
-  padding: 14px 16px;
+  min-height: 52px;
+  padding: 13px 16px;
   background: linear-gradient(110deg, var(--white), var(--surface-sky));
   color: var(--ink);
   transition:
@@ -346,10 +330,10 @@
 .auth-shell .auth-submit {
   font-family: inherit;
   font-size: 18px;
-  min-height: 58px;
+  min-height: 54px;
   border: 1px solid var(--auth-gold-edge);
   border-radius: 13px;
-  margin-top: 26px;
+  margin-top: 22px;
   background: linear-gradient(
     115deg,
     var(--gold-light),
@@ -358,7 +342,7 @@
   );
   box-shadow:
     inset 0 0 0 2px color-mix(in srgb, var(--white) 65%, transparent),
-    0 7px 16px color-mix(in srgb, var(--gold) 23%, transparent);
+    0 5px 12px color-mix(in srgb, var(--gold) 18%, transparent);
 }
 .auth-shell .auth-submit:hover:not(:disabled) {
   filter: brightness(1.04);
@@ -369,7 +353,7 @@
 .auth-shell p.auth-switch {
   font-size: 14px;
   line-height: 1.8;
-  margin-top: 25px !important;
+  margin-top: 18px !important;
   color: var(--ink);
 }
 .auth-shell .auth-switch a {
@@ -380,8 +364,8 @@
   font-weight: 700;
 }
 .auth-shell .auth-secure {
-  margin-top: 24px;
-  padding-top: 23px;
+  margin-top: 18px;
+  padding-top: 18px;
   border-top: 1px solid var(--border);
   font-size: 12px;
   line-height: 1.7;
@@ -482,7 +466,7 @@
   .auth-shell.auth-container {
     width: calc(100% - 40px);
     grid-template-columns: minmax(0, 0.85fr) minmax(0, 1fr);
-    min-height: 700px;
+    min-height: 640px;
   }
   .auth-shell .auth-brand {
     padding: 42px 18px;
@@ -491,10 +475,6 @@
     font-size: 9px;
     letter-spacing: 2px;
     gap: 6px;
-  }
-  .auth-shell .auth-brand-eyebrow::before,
-  .auth-shell .auth-brand-eyebrow::after {
-    width: 15px;
   }
   .auth-shell .auth-logo-halo {
     width: 160px;
@@ -550,10 +530,6 @@
     letter-spacing: 1.5px;
     display: block;
   }
-  .auth-shell .auth-brand-eyebrow::before,
-  .auth-shell .auth-brand-eyebrow::after {
-    display: none;
-  }
   .auth-shell .auth-brand h1 {
     grid-column: 2;
     font-size: clamp(17px, 4.4vw, 24px);
@@ -604,7 +580,7 @@
   }
   .auth-shell .auth-submit {
     font-size: 17px;
-    min-height: 54px;
+    min-height: 52px;
   }
   .auth-shell p.auth-switch {
     font-size: 13px;

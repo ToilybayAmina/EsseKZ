@@ -28,7 +28,6 @@ export function AuthBrand() {
     <div className="auth-brand">
       <AuthOrnament className="auth-corner auth-corner-brand-top" />
       <AuthOrnament className="auth-corner auth-corner-brand-bottom" />
-      <div className="auth-light-trails" aria-hidden="true" />
       <div className="auth-particles" aria-hidden="true">
         {Array.from({ length: 8 }, (_, i) => (
           <i key={i} />
