@@ -1841,6 +1841,7 @@ main {
   font-size: 9px;
 }
 .document-title {
+  text-align: center;
   margin-top: 23px;
   border: none;
   padding: 9px 0;
@@ -1855,6 +1856,30 @@ main {
   margin: 16px auto;
   width: 160px;
 }
+.document-edit-toggle {
+  display: block;
+  margin-left: auto;
+  margin-bottom: 8px;
+  font-size: 12px;
+}
+.document-prose {
+  padding: 10px 0 20px;
+  font-family: Georgia, 'Times New Roman', serif;
+  font-size: 17px;
+  line-height: 1.65;
+  color: var(--ink);
+  overflow-wrap: anywhere;
+}
+.document-prose p {
+  margin: 0;
+  text-indent: 1.25cm;
+}
+.document-prose p + p {
+  margin-top: 0.5em;
+}
+.document-text[hidden] {
+  display: none;
+}
 .document-text {
   min-height: 560px;
   resize: none;
@@ -1863,7 +1888,7 @@ main {
   padding: 14px 0;
   font-family: Georgia, 'Times New Roman', serif;
   font-size: 17px;
-  line-height: 2;
+  line-height: 1.65;
   color: var(--ink);
   background: white;
   border-radius: 0;
@@ -3366,6 +3391,9 @@ main {
   .document-panel > .ornament {
     margin-block: 10px;
     width: 130px;
+  }
+  .document-prose {
+    font-size: 16px;
   }
   .document-text {
     font-size: 16px;

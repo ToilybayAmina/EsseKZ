@@ -28,6 +28,7 @@ export function Result() {
   const [error, setError] = useState('');
   const [downloading, setDownloading] = useState('');
   const [copied, setCopied] = useState(false);
+  const [editing, setEditing] = useState(false);
   const dirty = Boolean(essay && (title !== essay.title || text !== essay.essay_text));
   useLayoutEffect(() => {
     function resize() {
@@ -39,7 +40,7 @@ export function Result() {
     window.addEventListener('resize', resize);
     document.fonts.ready.then(resize);
     return () => window.removeEventListener('resize', resize);
-  }, [text, loading]);
+  }, [text, loading, editing]);
   useEffect(() => {
     let live = true;
     setLoading(true);
@@ -177,10 +178,27 @@ export function Result() {
             maxLength={200}
           />
           <Ornament />
+          <button
+            type="button"
+            className="text-button document-edit-toggle"
+            onClick={() => setEditing((value) => !value)}
+            aria-expanded={editing}
+            aria-controls="result-text"
+          >
+            {editing ? 'Дайын көрініс' : 'Мәтінді өңдеу'}
+          </button>
+          {!editing && (
+            <div className="document-prose" aria-label="Эссенің дайын көрінісі">
+              {splitParagraphs(text).map((paragraph, index) => (
+                <p key={index}>{paragraph}</p>
+              ))}
+            </div>
+          )}
           <label className="sr-only" htmlFor="result-text">
             Эссе мәтіні
           </label>
           <textarea
+            hidden={!editing}
             ref={editor}
             id="result-text"
             className="document-text"
@@ -196,7 +214,7 @@ export function Result() {
             </span>
             <span>{splitParagraphs(text).length} абзац</span>
             <span>{text.length} таңба</span>
-            <span>Мәтінді осы жерде өңдей аласыз</span>
+            <span>Мәтінді өңдеп, сақтай аласыз</span>
           </div>
         </section>
         <aside className="result-aside">

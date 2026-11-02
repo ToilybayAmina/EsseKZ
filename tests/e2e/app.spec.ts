@@ -65,6 +65,7 @@ test('home, responsive navigation, account, generator, editor, exports, private 
   await page.getByRole('button', { name: 'Эссе жазу', exact: true }).click();
   await expect(page).toHaveURL(/\/result\//);
   expect(generationCalls).toBe(1);
+  await page.getByRole('button', { name: 'Мәтінді өңдеу', exact: true }).click();
   await page
     .getByLabel('Эссе мәтіні', { exact: true })
     .fill(
@@ -84,7 +85,26 @@ test('home, responsive navigation, account, generator, editor, exports, private 
   ).toBe(true);
   await page.reload();
   await expect(page.getByText('5 абзац', { exact: true })).toBeVisible();
-  await expect(page.getByLabel('Эссе мәтіні', { exact: true })).toHaveValue(/\n\nБіріншіден/);
+  const prose = page.locator('.document-prose');
+  await expect(prose.locator('p')).toHaveCount(5);
+  await expect(prose.locator('p').nth(1)).toContainText('Біріншіден');
+  expect(
+    await page.locator('.document-title').evaluate((el) => getComputedStyle(el).textAlign),
+  ).toBe('center');
+  const paragraphStyle = await prose
+    .locator('p')
+    .nth(1)
+    .evaluate((el) => {
+      const style = getComputedStyle(el);
+      return {
+        indent: parseFloat(style.textIndent),
+        gap: parseFloat(style.marginTop),
+        fontSize: parseFloat(style.fontSize),
+      };
+    });
+  expect(paragraphStyle.indent).toBeGreaterThan(40);
+  expect(paragraphStyle.gap).toBeGreaterThan(0);
+  expect(paragraphStyle.gap).toBeLessThanOrEqual(paragraphStyle.fontSize);
   await page.screenshot({
     path: `test-results/paragraphs-${testInfo.project.name}.png`,
     fullPage: true,
