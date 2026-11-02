@@ -88,7 +88,7 @@ export function Profile() {
             />
             <label htmlFor="profile-email">Электрондық пошта</label>
             <input id="profile-email" type="email" value={user?.email || ''} readOnly />
-            <p className="field-help">Email — аккаунтыңыздың тұрақты идентификаторы.</p>
+            <p className="field-help">Email - аккаунтыңыздың тұрақты идентификаторы.</p>
             {error && <ErrorBox>{error}</ErrorBox>}
             <button disabled={busy || name === user?.name} className="button gold" type="submit">
               <Save size={17} />

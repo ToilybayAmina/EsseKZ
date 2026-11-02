@@ -21,7 +21,7 @@ export function Brand({ footer = false }: { footer?: boolean }) {
     <Link
       to="/"
       className={`brand ${footer ? 'brand-footer' : ''}`}
-      aria-label="EsseKZ — басты бет"
+      aria-label="EsseKZ - басты бет"
     >
       <img src="/logo.svg" alt="Алтын қаламұш пен қанатты EsseKZ логотипі" />
       <div>

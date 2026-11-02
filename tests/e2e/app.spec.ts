@@ -11,7 +11,7 @@ test('home, responsive navigation, account, generator, editor, exports, private 
   const errors: string[] = [];
   page.on('pageerror', (e) => errors.push(e.message));
   await page.goto('/');
-  await expect(page.getByRole('heading', { name: /Ойың — қазына/ })).toBeVisible();
+  await expect(page.getByRole('heading', { name: /Ойың - қазына/ })).toBeVisible();
   await expect(page.locator('body')).toHaveJSProperty(
     'scrollWidth',
     await page.locator('body').evaluate((el) => el.clientWidth),

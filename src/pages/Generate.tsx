@@ -95,7 +95,7 @@ export function Generate() {
                 <span>01</span>
                 <div>
                   <h2>Не туралы жазамыз?</h2>
-                  <p>Мәтіннің негізі — сенің ойың.</p>
+                  <p>Мәтіннің негізі - сенің ойың.</p>
                 </div>
               </div>
               <label htmlFor="title">
@@ -108,10 +108,10 @@ export function Generate() {
                 maxLength={200}
                 value={params.title}
                 onChange={(e) => update('title', e.target.value)}
-                placeholder="Мысалы: Білім — болашақтың кілті"
+                placeholder="Мысалы: Білім - болашақтың кілті"
               />
               <div className="input-meta">
-                <span>Нақты тақырып — мазмұнды мәтіннің бастауы</span>
+                <span>Нақты тақырып - мазмұнды мәтіннің бастауы</span>
                 <span>{params.title.length}/200</span>
               </div>
               <label htmlFor="thesis">
@@ -127,7 +127,7 @@ export function Generate() {
               />
               <div className="topic-chips">
                 <span>Шабыт үшін:</span>
-                {['Ана тілім — асыл қазынам', 'Технология және адам', 'Табиғатқа қамқорлық'].map(
+                {['Ана тілім - асыл қазынам', 'Технология және адам', 'Табиғатқа қамқорлық'].map(
                   (t) => (
                     <button type="button" key={t} onClick={() => update('title', t)}>
                       {t}
@@ -266,7 +266,7 @@ export function Generate() {
             <div className="summary-icon">
               <FeatherIcon />
             </div>
-            <h3>{params.title || 'Әр ой — жаңа мүмкіндік'}</h3>
+            <h3>{params.title || 'Әр ой - жаңа мүмкіндік'}</h3>
             <Ornament />
             <dl>
               <div>

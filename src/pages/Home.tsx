@@ -31,7 +31,7 @@ export const faqs = [
   ],
   [
     'AI жазған мәтінді бірден тапсыруға бола ма?',
-    'Мәтін — жазу дағдысын дамытуға арналған көмекші үлгі. Деректерді өзіңіз тексеріп, ойыңызбен толықтырыңыз және оқу орныңыздың академиялық адалдық ережелерін сақтаңыз.',
+    'Мәтін - жазу дағдысын дамытуға арналған көмекші үлгі. Деректерді өзіңіз тексеріп, ойыңызбен толықтырыңыз және оқу орныңыздың академиялық адалдық ережелерін сақтаңыз.',
   ],
 ];
 export function FAQList() {
@@ -69,9 +69,9 @@ export function Home() {
               ҚАЗАҚ ТІЛІНДЕГІ ЖАЗУ КЕҢІСТІГІ
             </div>
             <h1>
-              Ойың — қазына.
+              Ойың - қазына.
               <br />
-              Сөзің — <span>қанат.</span>
+              Сөзің - <span>қанат.</span>
             </h1>
             <p>
               Қазақ тілінде эссе жазуға арналған заманауи платформа.
@@ -118,7 +118,7 @@ export function Home() {
               aria-hidden="true"
             />
             <div className="floating-note">
-              <Sparkles size={16} aria-hidden="true" /> Әр идея — жаңа эссе
+              <Sparkles size={16} aria-hidden="true" /> Әр идея - жаңа эссе
             </div>
           </div>
           <div className="hero-wave" aria-hidden="true" />
@@ -149,7 +149,7 @@ export function Home() {
             value={topic}
             onChange={(e) => setTopic(e.target.value)}
             maxLength={200}
-            placeholder="Мысалы: Білім — болашақтың кілті"
+            placeholder="Мысалы: Білім - болашақтың кілті"
           />
           <button className="button gold" type="submit">
             Бастау <ArrowRight size={17} />
@@ -165,7 +165,7 @@ export function Home() {
           <p>
             Алғашқы идеядан соңғы нүктеге дейін.
             <br />
-            Жазуға қажет құралдар — бір кеңістікте.
+            Жазуға қажет құралдар - бір кеңістікте.
           </p>
         </div>
         <div className="feature-grid">
@@ -223,7 +223,7 @@ export function Home() {
               <span className="serif-accent">Әдемі жеткізу.</span>
             </h2>
             <p>
-              EsseKZ — қазақ тілінде жазуды жеңілдетуге арналған жоба. Біз технология мен ана
+              EsseKZ - қазақ тілінде жазуды жеңілдетуге арналған жоба. Біз технология мен ана
               тіліміздің байлығын бір кеңістікке біріктіреміз.
             </p>
             <ul className="check-list">
@@ -273,7 +273,7 @@ export function Home() {
           <br />
           <em>өзіңе қойған жақсы сұрақтан басталады.</em>
         </p>
-        <span>ӘР СӨЙЛЕМДЕ — ЖАҢА МҮМКІНДІК</span>
+        <span>ӘР СӨЙЛЕМДЕ - ЖАҢА МҮМКІНДІК</span>
         <Ornament />
       </section>
       <section className="container section faq-section">
