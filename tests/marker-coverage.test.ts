@@ -12,7 +12,7 @@ test('a marker-free essay cannot pass; evidence, reasoning and conclusion belong
     conclusion: 'Тілді сақтау ортақ міндет. Оны қолдану қажет.',
     counterargument: '',
   };
-  assert.equal(markerCoverageIssues(empty, defaults, false).length, 3);
+  assert.equal(markerCoverageIssues(empty, defaults, false).length, 4);
   const withMarkers = {
     ...empty,
     bodyParagraphs: [
@@ -30,7 +30,7 @@ test('a marker-free essay cannot pass; evidence, reasoning and conclusion belong
       defaults,
       false,
     ).length,
-    2,
+    3,
   );
   assert.equal(
     markerCoverageIssues(
@@ -38,7 +38,7 @@ test('a marker-free essay cannot pass; evidence, reasoning and conclusion belong
       defaults,
       false,
     ).length,
-    2,
+    3,
   );
 });
 
@@ -86,4 +86,19 @@ test('the provider repairs a missing marker without switching the existing compo
   assert.equal(calls, 2);
   assert.equal(result.wordCount, 250);
   assert.match(result.essay, /Демек/);
+});
+
+test('markers spread across body paragraphs and expanded alternatives count in context', () => {
+  const draft = {
+    bodyParagraphs: [
+      'Мәселен, бір дәлел бар. Өйткені оның себебі түсінікті.',
+      'Екінші ой өз алдына тұр. Оның байланысы көрсетілмеген.',
+    ],
+    conclusion: 'Демек, ой түйінделді.',
+    counterargument: '',
+  };
+  assert.ok(markerCoverageIssues(draft, defaults, false).some((x) => x.includes('2-абзацында')));
+  draft.bodyParagraphs[1] =
+    'Басқаша айтқанда, екінші ой алдыңғысын түсіндіреді. Оның байланысы анық.';
+  assert.deepEqual(markerCoverageIssues(draft, defaults, false), []);
 });
