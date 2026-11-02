@@ -2,6 +2,7 @@ import { z } from 'zod';
 import type { Parameters } from '../shared/schema.ts';
 import { normalizeParagraph } from '../shared/essay-format.ts';
 import { markerGuidance, markerIssues } from './markers.ts';
+import { createCompositionPlan, compositionGuidance, type CompositionPlan } from './composition.ts';
 
 export const structuredEssaySchema = z.object({
   title: z.string().trim().min(1).max(200),
@@ -41,9 +42,9 @@ const styleGuidance: Record<Parameters['style'], string> = {
   'Ресми-іскери':
     'Нақты, жинақы, бірмәнді тіл және қисынды ұсыныстар. Жаргон, орынсыз бейнелеу және эмоциялық әсірелеу қоспа.',
   Бейресми:
-    'Түсінікті, табиғи авторлық тіл. Жеке ұстанымға болады, бірақ орынсыз жаргон мен дәлелсіз кесімді пікірден аулақ бол.',
+    'Түсінікті, табиғи авторлық тіл. Жеке ұстанымға болады; кеңселік «болып табылады», «қамтамасыз етеді» қалыптарын орынсыз тықпалама. Жаргон мен дәлелсіз кесімді пікірден аулақ бол.',
   Көркем:
-    'Бейнелі тіл, сезім мен ой-толғауға болады. Авторлық дауысты сақта, бірақ ойдан алынған оқиғаны нақты өмірбаян не тарихи дерек деп ұсынба.',
+    'Бейнелі тіл, сезім мен ой-толғауға болады. Бір-екі дәл деталь жалпылама әсірелеуден құндырақ. Әр абзацқа «рухани қазына», «алтын көпір», «ұлттық код» сияқты дайын теңеулерді тізбе. Ойдан алынған оқиғаны нақты өмірбаян не тарихи дерек деп ұсынба.',
 };
 const audienceGuidance: Record<Parameters['audience'], string> = {
   Оқушылар: 'Қарапайым түсіндіру, түсініксіз терминге қысқа анықтама және таныс мысал.',
@@ -56,23 +57,31 @@ const audienceGuidance: Record<Parameters['audience'], string> = {
     'Терминологиялық дәлдік пен кәсіби түсіндіру; негізсіз статистикасыз нақты аргументация.',
 };
 
-export function structureGuidance(params: Parameters): string {
+export function structureGuidance(
+  params: Parameters,
+  plan = createCompositionPlan(params, 1),
+): string {
   const count = params.argumentsCount + 2 + Number(params.includeCounterargument);
   return [
     'Эссе құрылымы: кіріспе → негізгі бөлім → қорытынды. Бұл бөлім атаулары соңғы мәтінде жазылмайды.',
     `Барлығы ${count} бөлек абзац: бір кіріспе, ${params.argumentsCount} дәлел абзацы, ${params.includeCounterargument ? 'бір қарсы пікір және оған жауап абзацы, ' : ''}бір қорытынды.`,
-    'introduction: тақырып пен мәселені таныстыр, өзектілікті нақты аш, кіріспеде анық әрі дәлелдеуге болатын негізгі тезисті тұжырымда. Негізгі бөлімге табиғи өт.',
-    `bodyParagraphs: дәл ${params.argumentsCount} элемент. Әр элемент — бір ғана дәлелді ашатын жеке абзац. Тақырыптық сөйлем → негіздеу/нақты мысал → мысалдың тезиспен байланысын түсіндіру → шағын түйін (PEEL / тезис–дәлел–қорытынды).`,
+    ['Баяндау', 'Сипаттама'].includes(params.essayType) || params.style === 'Көркем'
+      ? 'introduction: бір нақты көрініс, маңызды деталь не ойландыратын сауал арқылы тақырыпқа енгіз. Негізгі ой көріністің мағынасынан анық байқалсын; «Менің ойымша» деп тезисті бөлек жариялау міндет емес.'
+      : 'introduction: тақырып пен мәселені таныстыр, өзектілікті нақты аш, анық әрі дәлелдеуге болатын тезисті тұжырымда. «Бұл тақырып өзекті» деген бос мәлімдеменің орнына нақты мәселе көрсет.',
+    `bodyParagraphs: дәл ${params.argumentsCount} элемент. Әр элемент бір дербес ойды/дәлелді негіздейтін абзац. Ой, негіз және шағын түйін мағыналық тұрғыда болсын, бірақ олардың сөйлемдегі реті жанрға және композицияға сай өзгерсін. Әр дәлелдің мысалы мен қызметі әртүрлі болсын.`,
+    compositionGuidance(params, plan),
     params.includeCounterargument
       ? 'counterargument: бір бөлек абзацта қарсы көзқарасты әділ беріп, оған негізді жауап жаз.'
       : 'counterargument: дәл бос жол "" қайтар.',
-    'conclusion: негізгі тезисті басқа сөзбен жинақтап, дәлелдерден туған тұжырым не ұсыныспен аяқта. Жаңа дәлел мен жаңа дерек қоспа.',
+    ['Баяндау', 'Сипаттама'].includes(params.essayType) || params.style === 'Көркем'
+      ? 'conclusion: бастапқы көрініс, деталь не сұраққа оның ашылған мәнімен орал. Дәлелденбеген ауқымды мораль, ұран не жаңа оқиға қоспа.'
+      : 'conclusion: дәлелдерден туатын нақты түйін жаса; кіріспедегі тезисті сөзбе-сөз қайталама. Жаңа дәлел мен жаңа дерек қоспа.',
     'ӘР абзацта кемінде екі толық сөйлем болсын; бір абзац — бір тұтас ой. Әр JSON өрісі не массив элементі тек бір абзацтың мәтінін қамтиды, ішіне жаңа жол, тақырыпша, нөмір немесе bullet қоспа.',
-    'title берілген тақырыпты дәл ашсын. Жауап өрістері: title, introduction, bodyParagraphs, counterargument, conclusion, wordCount. Сервер оларды арасына бос жол қойып біріктіреді.',
+    'title пайдаланушы енгізген тақырыппен дәлме-дәл сақталсын; кеңейтпе, өзгертпе. Жауап өрістері: title, introduction, bodyParagraphs, counterargument, conclusion, wordCount. Сервер оларды арасына бос жол қойып біріктіреді.',
     `Стиль: ${params.style}. ${styleGuidance[params.style]}`,
     `Аудитория: ${params.audience}. ${audienceGuidance[params.audience]}`,
     'Дерек, статистика, автор, шығарма, дәйексөз және зерттеу ойдан шығарылмайды. Дереккөз таңдалған кезде де тек сенімді білетін еңбекке сүйен; тексерілмегенін ашық көрсет.',
-    markerGuidance(params),
+    markerGuidance(params, plan.allowOrdinalMarkers, plan.allowConclusionFormula),
   ].join('\n');
 }
 
@@ -85,7 +94,11 @@ export function serializeEssay(draft: StructuredEssay): string {
   return essayParagraphs(draft).join('\n\n');
 }
 
-export function structureIssues(draft: StructuredEssay, params: Parameters): string[] {
+export function structureIssues(
+  draft: StructuredEssay,
+  params: Parameters,
+  plan?: CompositionPlan,
+): string[] {
   const issues: string[] = [];
   if (draft.bodyParagraphs.length !== params.argumentsCount)
     issues.push(
@@ -118,6 +131,13 @@ export function structureIssues(draft: StructuredEssay, params: Parameters): str
     issues.push(
       `${short.join(', ')}-абзацта екі толық сөйлемнен аз; әр абзацты ой–дәлел/мысал–түйін бойынша дамытыңыз.`,
     );
-  issues.push(...markerIssues(draft.bodyParagraphs, serializeEssay(draft)));
+  issues.push(
+    ...markerIssues(
+      draft.bodyParagraphs,
+      serializeEssay(draft),
+      plan?.allowOrdinalMarkers,
+      plan?.allowConclusionFormula,
+    ),
+  );
   return issues;
 }

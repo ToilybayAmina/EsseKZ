@@ -213,6 +213,11 @@ test('rejected short draft is sent back with exact bounds and repaired without a
       );
       assert.equal(payload.contents[2].role, 'user');
       assert.match(payload.contents[2].parts[0].text, /Сөз саны 100/);
+      assert.match(payload.contents[2].parts[0].text, /150 мазмұнды сөз қос/);
+      assert.match(
+        payload.contents[2].parts[0].text,
+        /Абзацтардағы нақты сөз саны: 20, 20, 20, 20, 20/,
+      );
       assert.match(payload.contents[2].parts[0].text, /213–287/);
     }
     return Response.json({
