@@ -4,11 +4,18 @@ import type { Parameters } from '../shared/schema.ts';
 export const markers = {
   thesis: ['Меніңше', 'Менің ойымша', 'Менің пікірімше'],
   order: ['Біріншіден', 'Екіншіден', 'Үшіншіден', 'Төртіншіден', 'Бесіншіден'],
-  evidence: ['Мысалы', 'Бұған мысал ретінде', 'Нақты мысал ретінде', 'Дәлел ретінде'],
+  evidence: [
+    'Мысалы',
+    'Мәселен',
+    'Айталық',
+    'Бұған мысал ретінде',
+    'Нақты мысал ретінде',
+    'Дәлел ретінде',
+  ],
   cause: ['Себебі', 'Өйткені'],
   consequence: ['Сондықтан', 'Сол себепті', 'Осының нәтижесінде', 'Осыған байланысты'],
   addition: ['Сонымен қатар', 'Бұған қоса', 'Оған қоса'],
-  contrast: ['Алайда', 'Дегенмен', 'Қарсы көзқарас бойынша'],
+  contrast: ['Алайда', 'Дегенмен', 'Бірақ', 'Соған қарамастан', 'Қарсы көзқарас бойынша'],
   comparison: ['Салыстырсақ', 'Ал', 'Екеуі де', 'Бірімен салыстырғанда'],
   time: ['Алдымен', 'Осы кезде', 'Кейінірек', 'Содан соң', 'Ақырында'],
   conclusion: [
@@ -21,13 +28,106 @@ export const markers = {
   ],
 };
 
+type MarkerDraft = { bodyParagraphs: string[]; conclusion: string; counterargument: string };
+export type MarkerRequirement = {
+  role: string;
+  scope: 'body' | 'conclusion' | 'counterargument';
+  choices: readonly string[];
+};
+
+export function markerRequirements(
+  params: Parameters,
+  allowConclusionFormula: boolean,
+): MarkerRequirement[] {
+  const requirements: MarkerRequirement[] = [];
+  if (params.essayType === 'Салыстырмалы') {
+    requirements.push({ role: 'салыстыру', scope: 'body', choices: markers.comparison });
+    requirements.push({ role: 'мысал келтіру', scope: 'body', choices: markers.evidence });
+  } else if (['Баяндау', 'Тарихи'].includes(params.essayType)) {
+    requirements.push({ role: 'оқиғаның уақыт байланысы', scope: 'body', choices: markers.time });
+    requirements.push({
+      role: 'себеп не нәтиже',
+      scope: 'body',
+      choices: [...markers.cause, ...markers.consequence],
+    });
+  } else if (params.essayType === 'Сипаттама') {
+    requirements.push({
+      role: 'детальды толықтыру не мысал',
+      scope: 'body',
+      choices: [...markers.evidence, ...markers.addition],
+    });
+  } else if (params.essayType === 'Философиялық') {
+    requirements.push({
+      role: 'ойдан туатын себеп не түйін',
+      scope: 'body',
+      choices: [...markers.cause, ...markers.consequence],
+    });
+  } else {
+    requirements.push({ role: 'мысал келтіру', scope: 'body', choices: markers.evidence });
+    requirements.push({
+      role: 'себеп не нәтиже',
+      scope: 'body',
+      choices: [...markers.cause, ...markers.consequence],
+    });
+  }
+  requirements.push({
+    role: 'қорытындылау',
+    scope: 'conclusion',
+    choices: allowConclusionFormula ? markers.conclusion : ['Осылайша', 'Демек', 'Сондықтан'],
+  });
+  if (params.includeCounterargument)
+    requirements.push({
+      role: 'қарсы көзқарасты байланыстыру',
+      scope: 'counterargument',
+      choices: markers.contrast,
+    });
+  return requirements;
+}
+
+function containsMarker(text: string, marker: string) {
+  const escaped = marker.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  return new RegExp(`(?<![\\p{L}\\p{N}])${escaped}(?![\\p{L}\\p{N}])`, 'iu').test(text);
+}
+
+export function markerCoverageIssues(
+  draft: MarkerDraft,
+  params: Parameters,
+  allowConclusionFormula: boolean,
+): string[] {
+  return markerRequirements(params, allowConclusionFormula).flatMap((requirement) => {
+    const text =
+      requirement.scope === 'body' ? draft.bodyParagraphs.join('\n\n') : draft[requirement.scope];
+    return requirement.choices.some((marker) => containsMarker(text, marker))
+      ? []
+      : [
+          `${requirement.scope === 'body' ? 'Негізгі бөлімде' : requirement.scope === 'conclusion' ? 'Қорытындыда' : 'Қарсы пікір абзацында'} «${requirement.role}» қызметін атқаратын маркер жоқ. ${requirement.choices.join('; ')} нұсқаларының бірін мағынаға сай енгізіңіз.`,
+        ];
+  });
+}
+
 export function markerGuidance(
   params: Parameters,
   allowOrdinalMarkers = false,
   allowConclusionFormula = false,
+  variation = 0,
 ): string {
   const formal = ['Ғылыми', 'Академиялық', 'Ресми-іскери'].includes(params.style);
   return [
+    'Маркерлік сөздер мәтінде міндетті түрде, бірақ орнымен қолданылсын. Оларды дайын мәтінге механикалық қоспа: маркері бар сөйлем сол логикалық қатынасты шын ашсын. Маркерді сөйлем басында ғана емес, сөйлем ішінде де қолдануға болады.',
+    ...markerRequirements(params, allowConclusionFormula).map((requirement, index) => {
+      const shift = (variation + index) % requirement.choices.length;
+      const preferred = [
+        ...requirement.choices.slice(shift),
+        ...requirement.choices.slice(0, shift),
+      ].slice(0, 3);
+      const location =
+        requirement.scope === 'body'
+          ? 'негізгі бөлімде'
+          : requirement.scope === 'conclusion'
+            ? 'қорытындыда'
+            : 'қарсы пікір абзацында';
+      return `Кемінде бір «${requirement.role}» маркерін ${location} қолдан. Осы нұсқаға ұсынылатын баламалар: ${preferred.join('; ')}. Басқа дұрыс балама да жарайды. Жаңа мазмұндық жоспарды өзгертпе.`;
+    }),
     'Маркерді ойдың логикалық қызметіне сай таңда. Бір сөйлемге бірнеше маркерді тізбектеме, әр сөйлемді маркермен бастама.',
     formal
       ? 'Ресми стильде тезисті бейтарап тұжырымда; «Менің ойымша» сияқты бірінші жақ қалыптарын орынсыз қолданба. Ғылыми стильде «мен» есімдігін барынша азайт.'
@@ -47,7 +147,7 @@ export function markerGuidance(
       ? `Оқиғаға қажет уақыт байланыстары: ${markers.time.join('; ')}. Әр абзацты осылармен бастау міндет емес.`
       : '',
     allowConclusionFormula
-      ? 'Қорытынды маркері міндетті емес: ойға қажет болса ғана бір рет қолданылады. Түйінге жаңа дәлел қоспа.'
+      ? 'Қорытындыда ойды түйіндейтін бір маркерді мағынаға сай қолдан. Түйінге жаңа дәлел қоспа.'
       : 'Бұл нұсқаның қорытындысын «Қорытындылай келе», «Қорыта айтқанда», «Қорыта келе» деп бастама. Нақты тұжырым, бастапқы сұраққа жауап немесе бейнеге оралу қорытынды қызметін өзі атқарсын. Жаңа дәлел қоспа.',
     ['Көркем', 'Бейресми'].includes(params.style) ||
     ['Баяндау', 'Сипаттама', 'Философиялық'].includes(params.essayType)

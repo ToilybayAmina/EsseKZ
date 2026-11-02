@@ -70,7 +70,7 @@ test('sources and counterargument choices affect guidance without inventing evid
   assert.match(withSources, /ойдан/);
 });
 
-test('markers are optional, but wrong order, stacked markers and repeated conclusions are rejected', () => {
+test('marker choices vary, but wrong order, stacked markers and repeated conclusions are rejected', () => {
   const draft = structuredFixture(250);
   assert.deepEqual(structureIssues(draft, defaults, createCompositionPlan(defaults, 1)), []);
   assert.deepEqual(

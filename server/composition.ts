@@ -233,6 +233,7 @@ export type CompositionPlan = {
   ending: string;
   allowOrdinalMarkers: boolean;
   allowConclusionFormula: boolean;
+  markerVariation: number;
   budget: { introduction: number; body: number[]; counterargument: number; conclusion: number };
 };
 
@@ -249,6 +250,7 @@ export function createCompositionPlan(
     : 0;
   const remaining = params.targetWordCount - introduction - conclusion - counterargument;
   return {
+    markerVariation: seed,
     path: genre.paths[seed % genre.paths.length],
     opening: genre.openings[Math.floor(seed / 3) % genre.openings.length],
     ending: genre.endings[Math.floor(seed / 9) % genre.endings.length],

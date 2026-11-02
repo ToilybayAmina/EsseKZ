@@ -1,7 +1,7 @@
 import { z } from 'zod';
 import type { Parameters } from '../shared/schema.ts';
 import { normalizeParagraph } from '../shared/essay-format.ts';
-import { markerGuidance, markerIssues } from './markers.ts';
+import { markerGuidance, markerIssues, markerCoverageIssues } from './markers.ts';
 import { createCompositionPlan, compositionGuidance, type CompositionPlan } from './composition.ts';
 
 export const structuredEssaySchema = z.object({
@@ -81,7 +81,12 @@ export function structureGuidance(
     `Стиль: ${params.style}. ${styleGuidance[params.style]}`,
     `Аудитория: ${params.audience}. ${audienceGuidance[params.audience]}`,
     'Дерек, статистика, автор, шығарма, дәйексөз және зерттеу ойдан шығарылмайды. Дереккөз таңдалған кезде де тек сенімді білетін еңбекке сүйен; тексерілмегенін ашық көрсет.',
-    markerGuidance(params, plan.allowOrdinalMarkers, plan.allowConclusionFormula),
+    markerGuidance(
+      params,
+      plan.allowOrdinalMarkers,
+      plan.allowConclusionFormula,
+      plan.markerVariation,
+    ),
   ].join('\n');
 }
 
@@ -139,5 +144,6 @@ export function structureIssues(
       plan?.allowConclusionFormula,
     ),
   );
+  if (plan) issues.push(...markerCoverageIssues(draft, params, plan.allowConclusionFormula));
   return issues;
 }
